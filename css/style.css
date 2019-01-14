@@ -1,0 +1,19 @@
+h1, h2, h3 {
+  font-family: 'Quicksand', sans-serif;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+p {
+  color: rgb(79, 82, 76);
+}
+
+.email-link {
+  font-size: x-large;
+}
+
+.email-link a {
+  color: rgb(172, 27, 43)
+}
