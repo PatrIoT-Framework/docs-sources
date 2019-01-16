@@ -1,5 +1,6 @@
+# this template is taken from the site prototype based on Antora. It is replaced by AsciiBinder templates on the current version of the site.
 site:
-  title: Patriot Framework Documentaion
+  title: Patriot Framework Documentation
   # the 404 page and sitemap files only get generated when the url property is set
   url: https://patriot-framework.io/docs
   start_page: component-b::index.adoc
