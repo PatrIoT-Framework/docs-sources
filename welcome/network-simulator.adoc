@@ -1,0 +1,164 @@
+= Network simulator API doc
+
+== Simple workflow
+
+Define routers → Define networks → Define topology → Call manager to connect networks via routers & calc routes → Call manager to process and set routes to routing tables
+
+== Define routers
+
+For router there is just one constructor used by user with router’s name. Router objects have to be stored in HashMap.
+
+== Define networks
+
+Networks have to be initialized with 3 main attributes:
+
+    * CIDR (int)
+    * Name of network (String)
+    * Network ip address (String)
+
+If network is corner gateway to internet attribute Internet has to be set as true. Every router will have default gateway targeting shortest path to internet network! All networks has to be stored in ArrayList<Network>.
+[%hardbreaks]
+For now is all topology stored in Network objects so there one more attribute named CalcRoutes (list of CalcRoute objects). List contains description of topology (routes).Each CalcRoute has 2 attributes:
+
+    * *NextHop object*
+        ** Next hop router (object)
+        ** Next hop network position in networks ArrayList (int)
+        [%hardbreaks]
+    * *Cost*
+        ** If networks are not directly connected and has to be calculated cost has to be equal networks ArrayList size{nbsp}+{nbsp}1
+        ** If target network is same as source user has to use null value as cost
+
+.Schema
+[#img-schema]
+[caption="Example: ",link=https://i.pinimg.com/originals/14/70/ea/1470ea4d84643eea91c3b2375822fa52.png]
+image::https://i.pinimg.com/originals/14/70/ea/1470ea4d84643eea91c3b2375822fa52.png[]
+
+== Network objects definition:
+[source]
+--
+HashMap<String, Router> routers = new HashMap<>();
+
+routers.put("TRt", new Router("TRt"));
+
+routers.put("SRt", new Router("SRt"));
+
+routers.put("MainRt", new Router("MainRt"));
+
+ArrayList<Network> topology = new ArrayList<>(4);
+
+Network tNet = new Network("Teacher", "192.168.0.0", 28);
+
+Network sNet = new Network("Student", "192.168.16.0", 28);
+
+Network bNet = new Network("Backbone", "172.16.0.0", 16);
+
+Network iNet = new Network();
+iNet.setName(“internet”);
+Inet.setInternet(true);
+
+topology.addAll(Arrays.asList(tNet, sNet, bNet, iNet));
+--
+
+== Topology description:
+[source]
+--
+Integer routNeedCalc = topology.size + 1;
+--
+=== Teachers network
+[source]
+--
+tNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 0), null));
+
+tNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 1), routNeedCalc));
+
+tNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“TRt”), 2), 1));
+
+tNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 3), routNeedCalc));
+--
+=== Students network
+[source]
+--
+sNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 0), routNeedCalc));
+
+sNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 1), null));
+
+sNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“SRt”), 2), 1));
+
+sNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 3), routNeedCalc));
+--
+== Backbone
+[source]
+--
+bNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“TRt”), 0), 1));
+
+bNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“SRt”), 1), 1));
+
+bNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(null, 2), null));
+
+bNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“MainR”), 3), 1));
+--
+=== Internet
+[source]
+--
+iNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 0), routNeedCalc));
+
+iNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 1), routNeedCalc));
+
+iNet.getCalcRoutes().add(
+	new CalcRoute(
+		new NextHop(routers.get(“MainR”), 2), 1));
+
+iNet.getCalcRoutes().add(
+	new CalcRoute(new NextHop(null, 3), null));
+--
+== Initialize networks in Docker
+[%hardbreaks]
+This step is simple. User just needs to call NetworkManager method named connect with 2 parameters:
+
+	* topology (ArrayList<Network>)
+	* routers (HashMap<Router>)
+
+Method returns updated routers HashMap with added physical interfaces with their addresses and names.
+
+[source]
+--
+routers = networkManager.connect(topology, routers);
+--
+== Calculating routes
+For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. Method need only topology table as argument.
+[source]
+--
+routers = networkManager.calcRoutes(topology);
+--
+== Process routing table to routes
+After calculating user needs process routing table with shortest paths to route format used in physical routing tables on routers and also for each calculated route must run method for finding physical next hop interface on router which match next hop networks network address. Path is parsed to iproute2 format. For processing there is only one method named processRoutes with 1 argument and it’s calculated topology table. Method return HashMap where key is router name and value is parsed route.
+[source]
+--
+HashMap hashMap = networkManager.processRoutes(topology);
+--
+== Set routes to routers routing tables
+For this action we are currently using python (flask) REST running on each router. Also there is Java controller for this REST. Controller use java.net package for requesting REST.
+[source]
+--
+networkManager.setRoutes(hashMap, routers);
+--
