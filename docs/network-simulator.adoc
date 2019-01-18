@@ -1,4 +1,6 @@
-= Network simulator API doc
+//:toc:
+
+= Network simulator API
 
 == Simple workflow
 
@@ -13,7 +15,7 @@ For router there is just one constructor used by user with router’s name. Rout
 Networks have to be initialized with 3 main attributes:
 
     * CIDR (int)
-    * Name of network (String)
+    * Network name (String)
     * Network ip address (String)
 
 If network is corner gateway to internet attribute Internet has to be set as true. Every router will have default gateway targeting shortest path to internet network! All networks has to be stored in ArrayList<Network>.
@@ -26,7 +28,7 @@ For now is all topology stored in Network objects so there one more attribute na
         [%hardbreaks]
     * *Cost*
         ** If networks are not directly connected and has to be calculated cost has to be equal networks ArrayList size{nbsp}+{nbsp}1
-        ** If target network is same as source user has to use null value as cost
+        ** If target network is same as source,java user has to use null value as cost
 
 .Schema
 [#img-schema]
@@ -34,8 +36,9 @@ For now is all topology stored in Network objects so there one more attribute na
 image::https://i.pinimg.com/originals/14/70/ea/1470ea4d84643eea91c3b2375822fa52.png[]
 
 == Network objects definition:
-[source]
---
+
+[source,java]
+----
 HashMap<String, Router> routers = new HashMap<>();
 
 routers.put("TRt", new Router("TRt"));
@@ -57,15 +60,15 @@ iNet.setName(“internet”);
 Inet.setInternet(true);
 
 topology.addAll(Arrays.asList(tNet, sNet, bNet, iNet));
---
+----
 
 == Topology description:
-[source]
+[source,java]
 --
 Integer routNeedCalc = topology.size + 1;
 --
 === Teachers network
-[source]
+[source,java]
 --
 tNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 0), null));
@@ -81,7 +84,7 @@ tNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), routNeedCalc));
 --
 === Students network
-[source]
+[source,java]
 --
 sNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 0), routNeedCalc));
@@ -97,7 +100,7 @@ sNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), routNeedCalc));
 --
 == Backbone
-[source]
+[source, java]
 --
 bNet.getCalcRoutes().add(
 	new CalcRoute(
@@ -116,7 +119,7 @@ bNet.getCalcRoutes().add(
 		new NextHop(routers.get(“MainR”), 3), 1));
 --
 === Internet
-[source]
+[source,java]
 --
 iNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 0), routNeedCalc));
@@ -131,34 +134,35 @@ iNet.getCalcRoutes().add(
 iNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), null));
 --
+
 == Initialize networks in Docker
 [%hardbreaks]
 This step is simple. User just needs to call NetworkManager method named connect with 2 parameters:
 
-	* topology (ArrayList<Network>)
-	* routers (HashMap<Router>)
+	* `topology (ArrayList<Network>)`
+	* `routers (HashMap<Router>)`
 
 Method returns updated routers HashMap with added physical interfaces with their addresses and names.
 
-[source]
+[source,java]
 --
 routers = networkManager.connect(topology, routers);
 --
 == Calculating routes
 For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. Method need only topology table as argument.
-[source]
+[source,java]
 --
 routers = networkManager.calcRoutes(topology);
 --
 == Process routing table to routes
 After calculating user needs process routing table with shortest paths to route format used in physical routing tables on routers and also for each calculated route must run method for finding physical next hop interface on router which match next hop networks network address. Path is parsed to iproute2 format. For processing there is only one method named processRoutes with 1 argument and it’s calculated topology table. Method return HashMap where key is router name and value is parsed route.
-[source]
+[source,java]
 --
 HashMap hashMap = networkManager.processRoutes(topology);
 --
 == Set routes to routers routing tables
 For this action we are currently using python (flask) REST running on each router. Also there is Java controller for this REST. Controller use java.net package for requesting REST.
-[source]
+[source,java]
 --
 networkManager.setRoutes(hashMap, routers);
 --
