@@ -1,4 +1,5 @@
-= {product-title} {product-version} Documentation
+= {product-title} Documentation
+{product-version}
 {product-author}
 {product-version}
 :data-uri:
@@ -7,6 +8,8 @@
 Welcome to the Patriot Framework Documentation.
 
 The PatrIoT framework enables testing of distributed IoT applications by providing test developers with features such as network virtualization, data simulation, and/or interaction with hardware devices all integrated into a single tool.
+
+Link
 
 == Need Help?
 * Check out the http://www.asciibinder.org/latest/welcome/[AsciiBinder documentation]
