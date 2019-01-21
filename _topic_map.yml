@@ -22,9 +22,14 @@
 # topic groups and topics on the main page.
 ---
 Name: PatrIoT Framework
+Dir: welcome
+Topics:
+  - Name: Documentation
+    File: index
+
+---
+Name: API Documentation
 Dir: docs
 Topics:
-  - Name: Documentaion
-    File: index
   - Name: Network Simulator
     File: network-simulator
