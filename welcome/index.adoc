@@ -1,7 +1,9 @@
 = {product-title} Documentation
-{product-version}
-{product-author}
-{product-version}
+
+//{product-version}
+//{product-author}
+//{product-version}
+
 :data-uri:
 :icons:
 
@@ -9,10 +11,7 @@ Welcome to the Patriot Framework Documentation.
 
 The PatrIoT framework enables testing of distributed IoT applications by providing test developers with features such as network virtualization, data simulation, and/or interaction with hardware devices all integrated into a single tool.
 
-Link
 
-== Need Help?
-* Check out the http://www.asciibinder.org/latest/welcome/[AsciiBinder documentation]
-* Join our http://groups.google.com/group/asciibinder[mailing list]
-* Find us on IRC at FreeNode, http://webchat.freenode.net/?randomnick=1&channels=asciibinder&uio=d4[#asciibinder] channel
-* Open an https://github.com/redhataccess/ascii_binder/issues[issue on GitHub]
+== API documentation
+
+link:network-simulator-api[Network Simulator API]
