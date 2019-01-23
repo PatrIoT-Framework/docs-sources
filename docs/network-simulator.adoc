@@ -1,34 +1,50 @@
-//:toc:
+:toc:
 
+[id='network-simulator-api']
 = Network simulator API
 
+[id='simple-workflow']
 == Simple workflow
 
-Define routers → Define networks → Define topology → Call manager to connect networks via routers & calc routes → Call manager to process and set routes to routing tables
+. Define routers
+. Define networks
+. Define topology
+. Call manager to connect networks via routers & CalcRoutes
+. Call manager to process and set routes to routing tables
 
-== Define routers
+[id='defining-routers']
+== Defining routers
 
-For router there is just one constructor used by user with router’s name. Router objects have to be stored in HashMap.
+The user only uses one constructor for the name of the router object.
+Router objects must be stored in HashMap.
 
-== Define networks
+[id='defining-networks']
+== Defining networks
 
-Networks have to be initialized with 3 main attributes:
+When initializing networks, the following 3 main attributes must be set:
 
     * CIDR (int)
     * Network name (String)
-    * Network ip address (String)
+    * Network IP address (String)
 
-If network is corner gateway to internet attribute Internet has to be set as true. Every router will have default gateway targeting shortest path to internet network! All networks has to be stored in ArrayList<Network>.
+If the network serves as a corner gateway to the internet, the `Internet` attribute must be set to `true`.
+Every router has a default gateway that targets the shortest path to internet network!
+All networks must be stored in `ArrayList<Network>`.
 [%hardbreaks]
-For now is all topology stored in Network objects so there one more attribute named CalcRoutes (list of CalcRoute objects). List contains description of topology (routes).Each CalcRoute has 2 attributes:
+For now, the entire topology is stored in Network objects.
+There is one more attribute named CalcRoutes that points to a list of CalcRoute objects.
+The list contains the description of topology (routes).
+
+Each CalcRoute object has 2 attributes:
 
     * *NextHop object*
         ** Next hop router (object)
-        ** Next hop network position in networks ArrayList (int)
-        [%hardbreaks]
+        ** Next hop network position in the networks ArrayList (int)
+
+[%hardbreaks]
     * *Cost*
-        ** If networks are not directly connected and has to be calculated cost has to be equal networks ArrayList size{nbsp}+{nbsp}1
-        ** If target network is same as source,java user has to use null value as cost
+        ** If the networks are not directly connected, and have to be calculated, the cost must be equal to the networks ArrayList size{nbsp}+{nbsp}1
+        ** If the target network is same as the source, the value of this attribute must be set to `null` in Java environments.
 
 .Schema
 [#img-schema]
@@ -135,20 +151,25 @@ iNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), null));
 --
 
-== Initialize networks in Docker
+[id='initializing-networks-in-docker']
+== Initializing networks in Docker
+
 [%hardbreaks]
-This step is simple. User just needs to call NetworkManager method named connect with 2 parameters:
+To initialize networks in Docker, the user must call the `NetworkManager` method named `connect` and specify the following 2 parameters:
 
 	* `topology (ArrayList<Network>)`
 	* `routers (HashMap<Router>)`
-
-Method returns updated routers HashMap with added physical interfaces with their addresses and names.
 
 [source,java]
 --
 routers = networkManager.connect(topology, routers);
 --
+
+The method returns a HashMap of updated routers with added corresponding physical interfaces, their addresses and names:
+
+[id='calculating routes']
 == Calculating routes
+
 For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. Method need only topology table as argument.
 [source,java]
 --
