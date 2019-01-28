@@ -14,4 +14,4 @@ The PatrIoT framework enables testing of distributed IoT applications by providi
 
 == API documentation
 
-link:latest/docs/network-simulator.html[Network Simulator API]
+link:../docs/network-simulator.html[Network Simulator API]
