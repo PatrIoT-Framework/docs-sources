@@ -52,20 +52,23 @@
     </nav>	
    <div class="container main-cont">
     <p class="d-md-none toggle-nav pull-left">
-      <button class="btn btn-secondary btn-sm" type="button" data-toggle="offcanvas">Toggle nav</button>
+      <button class="btn btn-outline-secondary btn-sm" type="button" data-toggle="offcanvas">Toggle nav</button>
     </p>
-    <ol class="breadcrumb bg-white d-none d-md-flex">
-      <li class="breadcrumb-item">
+    <ol class="breadcrumb bg-white">
+      <li class="d-block d-md-none breadcrumb-item">
+        <h4 class="red-text">Documentation</h4>
+      </li>
+      <li class="d-none d-md-block breadcrumb-item">
         <a href="<%= site_url %>"><%= site_name %></a>
       </li>
-      <li class="breadcrumb-item">
+      <li class="d-none d-md-block breadcrumb-item">
         <%= breadcrumb_root %>
       </li>
-      <li class="breadcrumb-item active">
+      <li class="d-none d-md-block breadcrumb-item active">
         <%= breadcrumb_group %>
       </li>
       <%= breadcrumb_subgroup_block %>
-      <li class="breadcrumb-item active">
+      <li class="d-none d-md-block breadcrumb-item active">
         <%= breadcrumb_topic %>
       </li>
     </ol>

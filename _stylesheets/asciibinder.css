@@ -24,6 +24,9 @@ License: https://creativecommons.org/licenses/by/2.0/
   font-weight: normal;
 }
 
+.red-text {
+  color: #9f292a;
+}
 .main-cont {
   padding-top: 1.5rem;
 }
@@ -151,7 +154,8 @@ h6 > a.anchor:hover {
 
 .nav-header {
   font-size: 20px;
-  width: 100%
+  width: 100%;
+  padding-bottom: 10px;
 }
 
 .nav-header ul {
@@ -227,7 +231,6 @@ body, html {
 
 @media screen and (max-width: 767px) {
   .row-offcanvas {
-    margin-top: 5rem;
     position: relative;
     -webkit-transition: all .25s ease-out;
          -o-transition: all .25s ease-out;
