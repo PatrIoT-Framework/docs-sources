@@ -73,7 +73,7 @@ Network sNet = new Network("Student", "192.168.16.0", 28);
 Network bNet = new Network("Backbone", "172.16.0.0", 16);
 
 Network iNet = new Network();
-iNet.setName(“internet”);
+iNet.setName("internet");
 Inet.setInternet(true);
 
 topology.addAll(Arrays.asList(tNet, sNet, bNet, iNet));
@@ -95,7 +95,7 @@ tNet.getCalcRoutes().add(
 
 tNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“TRt”), 2), 1));
+		new NextHop(routers.get("TRt"), 2), 1));
 
 tNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), routNeedCalc));
@@ -111,7 +111,7 @@ sNet.getCalcRoutes().add(
 
 sNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“SRt”), 2), 1));
+		new NextHop(routers.get("SRt"), 2), 1));
 
 sNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), routNeedCalc));
@@ -121,11 +121,11 @@ sNet.getCalcRoutes().add(
 --
 bNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“TRt”), 0), 1));
+		new NextHop(routers.get("TRt"), 0), 1));
 
 bNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“SRt”), 1), 1));
+		new NextHop(routers.get("SRt"), 1), 1));
 
 bNet.getCalcRoutes().add(
 	new CalcRoute(
@@ -133,7 +133,7 @@ bNet.getCalcRoutes().add(
 
 bNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“MainR”), 3), 1));
+		new NextHop(routers.get("MainR"), 3), 1));
 --
 === Internet
 [source,java]
@@ -146,7 +146,7 @@ iNet.getCalcRoutes().add(
 
 iNet.getCalcRoutes().add(
 	new CalcRoute(
-		new NextHop(routers.get(“MainR”), 2), 1));
+		new NextHop(routers.get("MainR"), 2), 1));
 
 iNet.getCalcRoutes().add(
 	new CalcRoute(new NextHop(null, 3), null));
