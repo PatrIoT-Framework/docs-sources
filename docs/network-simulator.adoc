@@ -1,4 +1,5 @@
 :toc:
+:source-highlighter: highlightjs
 
 [id='network-simulator-api']
 = Network simulator API

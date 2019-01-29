@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html>
 <head>
@@ -9,16 +10,20 @@
   <!-- Bootstrap -->
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-GJzZqFGwb1QTTN6wy59ffF1BuGJpLSa9DkKMp0DgiMDm4iYMj70gZWKYbI706tWS" crossorigin="anonymous">
   <%= render("_templates/_css.html.erb", :css_path => css_path) %>
-
    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
    <!--[if lt IE 9]>
-	https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html5shiv/3.7.3/html5shiv-printshiv.min.js"></script>
 	<script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
    <![endif]-->
 
   <link href="<%= File.join(images_path, "favicon-32x32.png") %>" rel="shortcut icon" type="text/css">
   <!--[if IE]><link rel="shortcut icon" href="<%= File.join(images_path, "favicon.ico") %>"><![endif]-->
+  <link rel="stylesheet" href="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/styles/default.min.css">
+  <script src="http://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.2.0/highlight.min.js"></script>
+  <script type='text/javascript'>
+      hljs.initHighlightingOnLoad();
+  </script>
   <meta content="AsciiBinder" name="application-name">
 </head>
 <body>
@@ -49,11 +54,11 @@
     <p class="d-md-none toggle-nav pull-left">
       <button class="btn btn-secondary btn-sm" type="button" data-toggle="offcanvas">Toggle nav</button>
     </p>
-    <ol class="breadcrumb d-none d-md-flex">
-      <li class="breadcrumb-item active">
+    <ol class="breadcrumb bg-white d-none d-md-flex">
+      <li class="breadcrumb-item">
         <a href="<%= site_url %>"><%= site_name %></a>
       </li>
-      <li class="breadcrumb-item active">
+      <li class="breadcrumb-item">
         <%= breadcrumb_root %>
       </li>
       <li class="breadcrumb-item active">
