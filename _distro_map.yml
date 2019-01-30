@@ -9,3 +9,6 @@ ascii_binder:
     master:
       name: Latest
       dir: latest
+    sources:
+      name: sources
+      dir: sources
