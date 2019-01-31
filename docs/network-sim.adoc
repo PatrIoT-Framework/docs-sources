@@ -1,0 +1,329 @@
+:toc:
+
+[id='network-simulator-api']
+== Network simulator 
+
+Network Simulator is the most complex feature of Patriot framework. It implements logic necessary
+to deploy virtual network environment where the parts of System Under Test, or whole SUT, can be
+deployed. In the current state of the framework, the network simulation is done with the
+Docker container platform.
+
+The Docker container platform is containerization platform aiming to bring several enhancements
+to the application deployment and its lifecycle. The core concept of containerization is to build a system for deployment of applications, that allows software delivery independent of the platform,
+advanced sandboxing of the applications. In case of Docker this is achieved by Paravirtualization,
+where the application is using only the kernel of the operating system and its core features, but all
+other services (e.g. networking, storage) are allocated for the containerized process and
+process is as separated from other processes as possible. 
+
+Following terms are necessary to understand the implementation of the network simulator.
+
+* Docker image - is bundled application with all necessary dependencies for application execution. 
+* Docker container - running instance of application, unit that has its own separated virtual drive initialized with data from
+image, using Copy-on-write strategy.
+* Docker network - a virtual network that provides network interfaces to the docker containers and interconnects or separates them
+from one another.
+
+The Patriot framework embraces those properties and builds on top of them scalable solution, that allows
+preparing, deploy and test components of the System Under Test. 
+
+=== Router 
+
+One of the necessary parts for the Network Simulation is a component called a router. 
+The router is in general device, which connects together two or more networks on L3 ISO/OSI level,
+(network level). That means that routers are responsible for providing service on the level of
+IP protocol instead of L2 ethernet. The main functionality of a router is to pass the data
+from one network to another based on their target network. To achieve this the routers must be
+equipped with routing tables.
+
+A routing table is set of rules that define to which network should be data holder, in case of IP
+called packet, passed by its target.
+
+The router component of Patriot framework is implemented in the `patriot-router` module. This
+the module implements a software router with RESTfull API, which allows Patriot framework to set it
+up and control its behavior.
+
+To build the router you only need a Docker installed
+
+[source,shell]
+.Building router Docker image
+----
+cd patriot-router
+docker build . --tag ${DESIRED_TAG}
+----
+
+This set of steps will create a new image stored in the local Docker storage, which is ready to use
+for the Patriot framework. The `$DESIRED_TAG` is then expected value which should be set to the
+`io.patriot_framework.router` property. After the router is built, the Network Simulator has all the
+dependencies ready for the execution. 
+ 
+[id='simple-workflow']
+=== Basic scenario
+
+The basic scenario shows how the network topology is set up within Network Simulator and
+how the components are integrated to achieve the desired outcome. The scenario can be broke down
+into the following steps. 
+
+. Define routers that will interconnect the virtual networks
+. Define networks that will be interconnected in the topology
+. Define topology which is the high-level connection of the networks,
+  it allows networks to be built into the tree structure.
+. Call manager to interconnect networks via deployed routers
+. Call manager to process and set routes to routing tables
+
+Those steps should be used in the series as is defined before because it will not cause
+possible errors due to missed dependencies.
+
+[id='defining-routers']
+==== Defining routers
+
+The first step is to define needed routers in the Patriot framework context, which will later
+connect networks together into the desired topology. These objects are only blueprints for the Network Simulator runtime, hence the only attribute for the router in this step is only its
+name of type `String`.  For later use, these Router objects must be stored in 
+`HashMap<String, Router>`.
+
+[source,java]
+.Creation of router
+----
+import io.patriot_framework.network.simulator.api.model.Router;
+Router r = new Router("TRt")
+----
+
+[id='defining-networks']
+==== Defining networks
+
+A network is another object that is used for Topology creation, it defines one address pool,
+which interconnects all containers associated with it. 
+When initializing networks, the following 3 main attributes are expected
+
+* Network mask is an integer in range 0 - 32
+* Network name is the identifier of the network for later use
+* Network IP address is a string in IPv4 address format `0-255.0-255.0-255.0-255` and identifies
+  the network address, which is in combination with network mask also a pool of addresses for the network devices. 
+* If the network serves as a corner gateway to the internet, the `Internet` attribute must 
+  be set to `true`.
+
+Every router has a default gateway that targets the shortest path to internet network!
+All networks must be stored in `ArrayList<Network>`.
+
+[source,java]
+.Initialization of Network object
+----
+import io.patriot_framework.network.simulator.api.model.Router;
+
+Network tNet = new Network("Teacher", "192.168.0.0", 28);
+----
+For now, the entire topology is stored in Network objects. There is one more attribute named CalcRoutes that points to a list of CalcRoute objects. The list contains the description of topology (routes).
+Each CalcRoute object has 2 attributes:
+
+* *NextHop object*
+    ** Next hop router (object)
+    ** Next hop network position in the networks ArrayList (int)
+
+* *Cost*
+    ** If the networks are not directly connected, and have to be calculated, the cost must be equal to the networks ArrayList size{nbsp}+{nbsp}1
+    ** If the target network is same as the source, the value of this attribute must be set to `null` in Java environments.
+
+.Schema
+[#img-schema]
+image::network.png[]
+
+<<<
+
+==== Comperhensive example 
+
+To show the Network Simulator in action, let's assume the following scenario: we want to create
+the network topology that consists of three networks
+
+* First one is for teachers
+* Second one is for students
+* Third one is the backbone
+* And also we want to have a connection to the Internet
+
+The following snippet shows basic objects that are needed for the simulation. 
+
+[source,java]
+.Create basic objects
+----
+HashMap<String, Router> routers = new HashMap<>();
+
+routers.put("TRt", new Router("TRt"));
+
+routers.put("SRt", new Router("SRt"));
+
+routers.put("MainRt", new Router("MainRt"));
+
+ArrayList<Network> topology = new ArrayList<>(4);
+
+Network tNet = new Network("Teacher", "192.168.0.0", 28);
+
+Network sNet = new Network("Student", "192.168.16.0", 28);
+
+Network bNet = new Network("Backbone", "172.16.0.0", 16);
+
+Network iNet = new Network();
+iNet.setName("internet");
+Inet.setInternet(true);
+----
+
+After the base objects are defined, now it is time to define the interconnection
+of the networks by putting the Routers in place.
+
+[source,java]
+.Set up the connection for Teacher network 
+----
+topology.addAll(Arrays.asList(tNet, sNet, bNet, iNet));
+
+Integer routNeedCalc = topology.size + 1;
+
+tNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 0), null));
+
+tNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 1), routNeedCalc));
+
+tNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("TRt"), 2), 1));
+
+tNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 3), routNeedCalc));
+----
+
+[source,java]
+.Set up the connection for Student network
+----
+sNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 0), routNeedCalc));
+
+sNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 1), null));
+
+sNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("SRt"), 2), 1));
+
+sNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 3), routNeedCalc));
+----
+
+[source,java]
+.Set up connection for backbone network
+----
+bNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("TRt"), 0), 1));
+
+bNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("SRt"), 1), 1));
+
+bNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(null, 2), null));
+
+bNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("MainR"), 3), 1));
+----
+
+[source,java]
+.Set up the Internet connection
+----
+iNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 0), routNeedCalc));
+
+iNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 1), routNeedCalc));
+
+iNet.getCalcRoutes().add(
+    new CalcRoute(
+        new NextHop(routers.get("MainR"), 2), 1));
+
+iNet.getCalcRoutes().add(
+    new CalcRoute(new NextHop(null, 3), null));
+----
+
+After all of those commands are executed, our topology is ready to be deployed.
+
+
+[id='initializing-networks-in-docker']
+=== Initializing networks in Docker
+
+Fro the start of simulated network  `NetworkManager` method named `connect` and specify the following 2 parameters:
+
+    * topology of type `ArrayList<Network>`
+    * routers of type `HashMap<Router>`
+
+[source,java]
+----
+routers = networkManager.connect(topology, routers);
+----
+
+The method returns a HashMap of updated routers with added corresponding physical interfaces, their addresses and names.
+
+[id='calculating routes']
+=== Calculating routes
+
+For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. The method need only topology table as argument.
+
+[source,java]
+----
+routers = networkManager.calcRoutes(topology);
+----
+
+=== Process routing table to routes
+
+After calculating user needs process routing table with shortest paths to route format used in physical routing tables on routers and also for each calculated route must run method for finding physical next hop interface on the router which match next hop networks network address. A path is parsed to iproute2 format. For processing, there is only one method named process routes with 1 argument and it’s calculated topology table. Method return HashMap where the key is router name and value is parsed route.
+
+[source,java]
+----
+HashMap hashMap = networkManager.processRoutes(topology);
+----
+
+=== Set routes to routers routing tables
+
+For this action, we are currently using python (flask) REST running on each router. Also, there is a Java controller for this REST. Controller use java.net package for requesting REST.
+
+[source,java]
+----
+networkManager.setRoutes(hashMap, routers);
+----
+
+<<<
+
+=== Deployment of tested application
+
+The last part of the Network Simulator is support for the deployment of a tested application
+into the simulated environment. In the current state the basic prerequisite is, that the
+application is containerized.
+
+[source,java]
+.Deployment of an application into the simulated environment
+----
+    NetworkManager networkManager = PatriotHub.getInstance().getManager();    
+    Topology topology = new TopologyBuilder(2)
+                .withRouters()
+                .withName("R1")
+                .addRouters()
+                .withNetwork("N1")
+                    .withIP("192.168.0.0")
+                    .withMask(28)
+                .create()
+                .withNetwork("N2")
+                    .withIP("192.168.16.0")
+                    .withMask(28)
+                .create()
+                .withRoutes()
+                    .withSourceNetwork("N1")
+                    .withDestNetwork("N2")
+                    .withCost(1)
+                    .viaRouter("R1")
+                    .addRoute()
+                .buildRoutes()
+                .build();
+        networkManager.connect(topology);
+        Manager m = new DockerManager();
+        Container dC = m.createContainer("testedApplication", "0.1-SNAPSHOT");
+        m.startContainer(dC);
+        m.connectContainerToNetwork(dC, new DockerNetwork(topology.getNetworks().get(1).getName()));
+---- 

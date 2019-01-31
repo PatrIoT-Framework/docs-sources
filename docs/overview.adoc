@@ -1,0 +1,22 @@
+:source-highlighter: highlightjs
+
+= Technical part of IoT QA framework (the first prototype): Technical user documentation
+developed by Quality Assurance System for Internet of Things 
+Technology project TH02010296-V8 
+:doctype: book
+:source-highlighter: rouge
+:imagesdir: images/
+:title-logo-image: image:PATRIOT_logo_shield.svg[Logo, 300, 300]
+:xrefstyle: short
+:toc:
+
+include::intro.adoc[]
+
+include::framework.adoc[]
+
+include::patriot-api.adoc[]
+
+include::network-sim.adoc[]
+
+include::data-generator.adoc[]
+

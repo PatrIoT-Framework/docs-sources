@@ -26,10 +26,39 @@ Dir: welcome
 Topics:
   - Name: Welcome
     File: index
-
+---
+Name: Introduction
+Dir: docs
+Topics:
+  - Name: Introduction to framework
+    File: intro
+---
+Name: Framework Documentation
+Dir: docs
+Topics:
+  - Name: Framework
+    File: framework
 ---
 Name: API Documentation
 Dir: docs
 Topics:
   - Name: Network Simulator
     File: network-simulator
+---
+Name: Data Generator Documentation
+Dir: docs
+Topics:
+  - Name: Data Generator Documentation
+    File: data-generator
+---
+Name: PatrIOT API
+Dir: docs
+Topics:
+  - Name: PatrIOT API Documentation
+    File: patriot-api
+---
+Name: Overview
+Dir: docs
+Topics:
+  - Name: Overview
+    File: overview

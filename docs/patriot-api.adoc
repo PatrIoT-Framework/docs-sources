@@ -1,0 +1,330 @@
+:source-highlighter: highlightjs
+
+[[patriot-api]]
+== PatrIoT API
+
+Patriot API is the core part of the framework, and it defines the means necessary for the
+testing to be effective as well as it brings the dependencies of upstream tools, and
+it also extends some parts of the JUnit framework, so it is possible to use it for integration
+testing.
+
+All packages of the PatrIoT framework are prefixed with `io.patriot_framework` which is the
+base namespace for the whole project, following package names, are stripped of this prefix
+
+* `network.simulator.api` Base API for the network simulation. More about this topic in <<network-simulator-api>>
+* `extensions` contains extensions for the JUnit framework, that enables features on top of existing
+JUnit Runner
+* `hub` provides the controlling interface over simulated network and data generators.
+
+=== The test scenario
+
+In the realm of unit testing the test if mostly simple, the test needs to create some
+clean environment, set up the tested unit and sometimes mock some of the functionality, that is depending
+on some different component or unit. Hence most of the existing testing frameworks are aiming
+for this functionality, which brings some problems when such tools are being used for higher levels of testing. The biggest problem is the lack of common setup before test run, and complete isolation of tests, which is mostly accompanied by random execution of tests, that can't be predicted or managed.
+
+On the other hand, integration tests mainly rely on the existence of the tested environment, that is
+set up before the Test Run starts and shut down (if needed) after the Test Run is done. Also, the requirement for the complete tests isolation is not entirely desirable since for many integration tests the setup is the same for several test cases and on many occasions, the tests are just stacked on themselves.
+
+==== JUnit 5
+
+The first thing, that will be described is how the tests are created in the JUnit its core concepts,
+this introduction will be brief and it will cover only very basics of the technology. For a more comprehensive description, please read https://junit.org/junit5/docs/current/user-guide/ .
+
+The core component of JUnit framework is `Test` annotation, which defines a single test method, that is
+expected to execute simple Test Case and by assertions signal the Test Runner about the results as can be seen in <<simple-test>>.
+
+[[simple-test]]
+[source,java]
+.Basic test using plain JUnit 
+----
+public class ArithmeticsTest {
+
+    @Test
+    public void testAdd() {
+        assertEquals(1 + 1, 2);
+    }
+}
+----
+
+Test Class is any top-level class, that contains at least one Test Method. For all test classes, there can be defined several special methods, that conducts the test preparation.
+
+* `BeforeAll` annotated method is executed only once when the Test Class is instantiated and before the first Test Method is executed
+* `BeforeEach` annotated method is executed before every Test Method is started
+* `AfterAll` annotated method is executed after last Test Method is executed or skipped (i. e. in case of failure of the previous one)
+* `AfterEach` annotated method is executed directly after Test Method is executed.
+
+The tests can be generally be organized in the following order:
+
+* `Test Suite` - composition of several Test Classes, that can be selected by various properties (e.g. by packages, tags or by listing the Test Classes directly)
+* `Test Class` - composition of test methods, that allows common setup for all Test Methods, ordered execution etc.
+* `Nested Test Class` - is Test Class that is implemented within a body of another Test Class.
+* `Test Method` - One single test case that is part of either Nested Test Class or Test Class.
+
+ 
+
+==== Environment setup 
+
+The limitation of the JUnit for the environment preparation is commonly solved by extraction of the setup procedures outside the test process and their execution before the test procedure starts. 
+This approach, however, brings many challenges, since the setup of the environment is typically set with 
+its own set of properties and definitions, which then must be somehow brought to the testing environment.
+The solution is typically to use some common configuration format, that is passed from the setup 
+process to the testing process, and by creating some common module, where the functionality for SUT access is stored.
+
+For this purpose, `Patriot-api` introduces abstract class `SetupExtension` to the JUnit framework. This extension is
+set to be executed only once, when the Test Run is started and can be used for various setup tasks, 
+that need to be run once before the tests are conducted. 
+
+SetupExtension contains four main abstract functions, that must be implemented in all child classes.
+
+* `void setup()` This method is called once when the object is instantiated and is used to setup environment.
+* `void tearDown()` This method is called after all tests are finished to clean up and tear down the environment
+* `UUID getUUID()` This method is used to obtain a unique identifier, that will be stored in the JUnit registry
+* `boolean isSetup()` This method is called to check if the class method `setup` was already run.
+
+To create your own SetupExtension, you need to create a new class, that is a child of SetupExtension and implements all the necessary methods.
+
+[[setup-class-instance]]
+[source,java]
+.Basic setup class
+----
+package test;
+
+import io.patriot_framework.junit.extensions.SetupExtension;
+import java.util.UUID;
+
+public class BasicSetup extends SetupExtension {
+
+    private static UUID uuid = UUID.randomUUID();
+    private static boolean configured = false;
+
+    @Override
+    protected boolean isSetUp() {
+        return configured;
+    }
+
+    @Override
+    public void setUp() {
+        configured = true;
+        //do the actual configuration
+    }
+
+    @Override
+    public void tearDown() {
+        //clean up
+    }
+
+    @Override
+    protected UUID getUUID() {
+        return uuid;
+    }
+}
+----
+
+For the extension to be executed when tests are started is then needed one more step, the custom extension
+must be registered in the `META-INF/services/org.junit.jupiter.api.extension.Extension` by a fully qualified name, which means the whole name of the class with the package. In case of <<setup-class-instance>> the file would look like shown in the snippet below.
+
+[source]
+.META-INF/services/org.junit.jupiter.api.extension.Extension
+----
+test.BasicSetup
+----
+
+The `META-INF` directory is in case of `maven` based project located relatively to the project root in directory `src/main/java/resources/META-INF`.
+
+In connection to other parts of the framework, there is extended abstract class `PatriotSetupExtension`, which is provided with the `PatriotHub` instance and contains protected method `getHub` as hub accessor. The `PatriotHub` is a singleton object which is accessible from whole test project and provides API for test environment setup and control. More about hub in <<test-env-controll>>.
+[[simple-provisioner]]
+[source,java]
+.Provisioner for PatrIoT framework
+----
+package test;
+
+import io.patriot_framework.junit.extensions.SetupExtension;
+import java.util.UUID;
+
+public class SimpleProvisioner extends PatriotSetupExtension {
+
+    private static UUID uuid = UUID.randomUUID();
+    private static boolean configured = false;
+
+    @Override
+    protected boolean isSetUp() {
+        return configured;
+    }
+
+    @Override
+    public void setUp() {
+        configured = true;
+        PatriotHub hub = 
+    }
+
+    @Override
+    public void tearDown() {
+        //clean up
+    }
+
+    @Override
+    protected UUID getUUID() {
+        return uuid;
+    }
+}
+----
+
+
+=== Conditional execution
+
+JUnit implements several methods for conditional execution of Test cases. Every Test Class or Test Method can be annotated, in order to set under which conditions it should or shouldn't be executed. Currently, supported conditions are:
+
+* Based on the operating system 
+* Based on Java Runtime Environment condition
+* Based on system properties
+* Based on environment variables
+* Or script based conditions 
+
+Nevertheless, for integration testing, it is desirable to have a condition based on results of prior Test Cases since it is common that when some integration test fails several others, that tests the same components will fail as well. The need to have the ability to skip some Test Cases is more necessary in case of time-consuming Test Cases.
+
+For this purpose PatrIoT framework implements another extension to the JUnit `ConditionalDisableExtension`. This extension is designed to allow the programmer to set if the test should be executed depending on the result of a particular test. 
+For instance, assuming you have two Test Classes `ServiceIsUpAndRunningTest` 
+and `ServiceCommunicatesWithApiTest`, then execution of second Test Class is unnecessary when the tests in the first one failed. Then you can use this feature
+
+[source,java]
+.Usage of ConditionalDisaledExtension
+----
+class  ServiceIsUpAndRunningTest{
+
+    @Test
+    void testServiceIsUp() {
+        // some connection
+    }
+}
+
+@DisableByState(ServiceIsUpAndRunningTest.class, TestResultState.FAILED)
+class ServiceCommunicatesWithApiTest {
+    
+    @Test
+    void testThatAPIReadsService() {
+        //test the API
+    }
+}
+
+----
+
+The code above will execute `ServiceIsUpAndRunningTest`, but if some of it's Test Methods will end
+with the state `FAILED`, then `ConditionalDisaledExtension` will prevent Test Class `ServiceCommunicatesWithApiTest`
+from execution. 
+
+As with the previous Extension, you need to register the extension within `META-INF` package on your classpath.
+
+[source]
+.META-INF/services/org.junit.jupiter.api.extension.Extension
+----
+io.patriot_framework.junit.extensions.ConditionalDisableExtension
+----
+
+
+=== Test environment control 
+
+One of the specified components of the framework is `Hub`, which is responsible for conducting actions on the life
+System Under Test.  The Hub component is implemented by singleton class `PatriotHub` and currently supports both,
+setup of the simulated environment as well as the creation of ad-hoc changes on the Simulated Network. 
+`PatriotHub` also provides access to the `Devices` from `patriot-sensor-generator` module. 
+For network manipulation, there are two main points of access:
+
+* `AppManager` controls deployment of containers into a simulated environment
+* `NetworkManager` controls Network Topology setup and interconnection of networks via Routers
+
+Both objects are held by the PatriotHub, and both are accessible as singletons to for the Test Methods so that they
+can be used anywhere within Test Run Lifecycle. As demonstrated by <<simple-provisioner>> the PatriotHub can be accessed
+as soon as the Test Runner starts, before any test is executed. 
+
+The only thing necessary for PatriotHub for proper function is a property that defines name and tag of the `Router`
+that is expected to be used within the simulated environment - without such property, PatriotHub will fail with 
+`PropertiesNotLoadedException`. To set such a property user has two options
+
+Create a properties file:: 
+Properties file should be named `patriot.properties` and should be loaded on the classpath and will contain `io.patriot_framework.router` key. 
+For maven test projects, default place where the properties should be stored is relative to the project root is `src/test/resources/` so the full path would be
+`src/test/resources/patriot.properties`
+
+Set system property:: 
+System property should be named `io.patriot_framework.router`. Such property can be either from a command line or by modifying project definition in `pom.xml`. 
+Property is passed via command line if the java process obtains following switch `-Dio.patriot_framework.router=${VALUE}`. This can be done 
+with plain java command by `java -jar ${your_test_jar} -Dio.patriot_framework.router=${ROUTER}` as well as with maven `mvn test -Dio.patriot_framework.router=${ROUTER}`  
+Another option would be by modification of the `pom.xml` file, that defines your testing project, you can simply add following `<properties><io.patriot_framework.router>VALUE</io.patriot_framework.router>`
+anywhere within `<project>` tags (but not nested).
+
+
+=== Reporting and monitoring
+
+Reporting is currently done by default JUnit reporter because in the current state, the Patriot Framework doesn't need to report anything special
+however, for future releases is such support expected and even developed on experimental branches of development version.
+Since Patriot Framework is developed using `maven` as build and dependency management tool, the best way to set up correct reporting and
+test execution is by using `maven-surefire-plugin`, which is default provider of test execution lifecycle phase for `maven`. JUnit is well
+integrated with surefire plugin, and test results are presented in the xUnit XML test report format, which is currently one of the most
+use due to the possibility of machine processing.
+
+==== Monitoring
+
+Monitoring for the Patriot Framework is currently implemented by setting API endpoint for https://www.elastic.co/guide/index.html[Elasticsearch] database to the
+Patriot environment.
+Elasticsearch database is currently one of the most used databases for Log aggregation tools, like EFK stack (Elasticsearch Fluentd and Kibana) in
+containerized clusters and ELK stack (Elasticsearch Logstash and Kibana) for real and virtual servers.
+
+In the case of Patriot Framework, usage of Elasticsearch is aimed to collect dynamic data from the System Under Test rather than for test logs collection. 
+Currently, are reported following events:
+
+* Creation of a network
+* Deletion of network
+* Connection of router to the Network
+* Disconnection of a router from the Network
+* Connection of application to network
+
+All of those events can be then searched in the Elasticsearch database, or visualized by https://www.elastic.co/guide/en/kibana/current/introduction.html[Kibana], which is analytics and 
+visualization platform based on top of Elasticsearch. 
+To set up the Elasticsearch the simpliest way is to run Docker container, which has several advantages
+
+* Deployment is easy and doesn't need basically any special configuration
+* In combination with the Simulated Network, Elasticsearch will be part of the Simulated Environment
+
+===== Set up Elasticsearch
+To obtain Elasticsearch for deployment into Docker container platform it is enough to use following command
+
+[source,shell]
+.Pull Elasticsearch image
+----
+docker pull docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+----
+
+After the pull is complete, the container can be started by following command, which creates new Docker container and starts services
+defined by images, in this case it will start Elasticsearch database.
+
+[source,shell]
+.Start Elasticsearch container
+----
+docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+----
+
+The command will do the following steps
+
+* It will expose port 9200 of the container to the host port 9200, the port 9200 will be open on localhost of the machine itself 
+* It will expose port 9300 of the container to the host port 9300, which has the same behavior as above
+* Sets discovery environment variable to value `discovery.type=single-node`
+
+The reporting for the Patriot Framework components is then enabled by setting Property `io.patriot_framework.monitoring.addr` which is a combination of
+The IP address of running instance of Elasticsearch and port for API access (by default it is 9200). Because of the docker deployment
+option, in this case, it is necessary to use the IP address of Elasticsearch instead of localhost, because the monitoring entries will be delivered
+to Elasticsearch from the Docker platform. The IP address of running container can be obtained by running following command 
+
+[source,shell]
+.Obtain Container IP address
+----
+docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${NAME_OF_ELASTIC_CONTAINER}
+---- 
+
+[source]
+.patriot.properties
+----
+io.patriot_framework.monitoring.addr=192.168.12.12:9200
+----
+
+

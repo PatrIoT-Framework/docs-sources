@@ -1,0 +1,115 @@
+:source-highlighter: highlightjs
+
+== Introduction
+
+The scope of this document is to bring you the overview of Patriot Framework, which
+is state of the art implementation of tools necessary for integration testing of IoT
+applications.  This document covers the basic components that build together the Patriot
+framework and also describes used technologies. 
+
+This chapter is discussing the high-level overview of the framework and its relation
+to the proposed solution architecture. Every component from architecture is then mapped to
+the component or components of the current framework.
+
+The second chapter describes the core module `patriot-api`, which is the main module for the framework's usage. It also shows basic concepts of JUnit testing framework and it's extensibility
+which is used by Patriot framework. 
+
+Third chapter explains the Network Simulator component of Patriot framework, which is responsible
+for the emulation of various topologies of networks as well as it serves as the executor for
+the virtualized Test Bed. The chapter shows how the simulated environment is created 
+
+The last chapter is dedicated to the Data Generator component, which stands as a building block
+for the sensory data generation. It provides several different methods, how to obtain such
+functionality. It also describes mathematical and statistical principles, which are used by the
+component itself.
+
+=== Overview
+This chapter briefly covers the overview of the framework and its implemented features.
+It shows the mapping of the abstract components to the existing ones and describes 
+the structure of the project itself.
+
+==== Components
+
+In the design phase of the solution, we've identified nine components which together
+covers all the areas of interest and possible problems that testing of IoT application
+means.
+
+Those nine components were designed together to cover four principal parts of automated testing
+framework:
+
+* Framework Core
+* Devices Emulation
+* Test Result Reporting
+* Performance Tesing
+
+Those nine components are implemented by various parts of the framework in combination
+with selected technologies that allow achieving the set goals. The break down of 
+the components into the real parts of the framework are shown in <<components-mapping>>,
+where each component is described and assigned to the part of framework or technology, that
+implements it.
+
+[[components-mapping]]
+.Proposed components and their implementation
+[cols="1,4,2"]
+|===
+| Component | Description | Implementation
+
+|Runner
+| It is the main controlling interface for the simulated environment. The goal is to unify access to different parts of simulation in a simple manner. It is providing access to the Network Simulation as well as to the Generator/Device emulation and allows tests to control the test execution.
+| Implemented by JUnit 5 and its extension API
+
+| Network Simulator
+|The component is responsible for emulation of network connections between components. The goal is to provide interfaces that will allow the definition, start, and deployment of selected network topologies and their control from the testing environment. 
+| Implemented in `patriot-network` module
+
+| Hub 
+| The component is responsible for creating ad hoc actions within the simulated environment. The goal is to create an interface which will allow tests to rule the components within simulated environment e.g., change of Network topology, change of generated data within a network, sudden disconnection of a component within network etc. The Hub also ensures monitoring of the test environment and provides the data to the subsequent processes.
+| Implemented as part of `patriot-api` module with the connection to the `patriot-network` and `patriot-sensor-generator` .
+
+| Generator / Device emulation
+| The component provides a capability for emulation of different types of physical devices. It also has the capability for generating different types of data by probabilistic algorithms, that will allow emulation of realistic behavior of such devices.
+| Implemented in `patriot-sensor-generator` module
+
+| Collector
+|The component is responsible for data collection from Network Simulator and Generator / Device emulation components. The goal is to provide data aggregator that will store different events from a simulated environment and provide them to test runners for analysis and test replayability.
+| Implemented by the connector to the ElasticSearch database
+
+| Provisioner
+| The component is responsible for deployment and start of the whole simulated environment. It provides an interface for environment description and environment start. It instructs both Network Simulator and Generator / Device emulation.
+| Implemented in the `patriot-network` module and `patriot-api`
+
+| Reporter 
+| The component is responsible for processing and presentation of test results, test runs and events that occurred within a testing environment. The goal is to provide a unified reporting interface, which will accept test results as well as the events and states from a testing environment for following processing and representation.
+| Implemented by the JUnit5 reporter
+
+| Integration Test Runner
+| The component is responsible for the definition of test cases and testing strategies. The goal is to provide the user with interfaces necessary for a description of test cases and evaluation of test cases. It is also responsible for the realization and management of test flow. 
+| Implemented by JUnit and extensions in `patriot-api` module
+
+|===
+
+==== Modules of the framework
+
+The PatrIoT framework is split into three main modules and one tool, that contains the main functionality and
+implements the components of the framework. 
+
+* `patriot-api` module that defines basic APIs, and extensions to used technologies
+* `patriot-newtork` backend for the network simulation
+* `patriot-sensor-generator` module responsible for sensor data generation and emulation
+* `patriot-router` is a tool build as a part of the network simulation, that acts as a network router in the simulated network
+
+Patriot api:: Implemented in the `patriot-api` module it contains the basic `API`s for the framework functionality
+and it integrates other modules as well as other technologies. It is built on top of JUnit testing framework and
+it introduces several extensions needed for the integration testing.
+
+Patriot network:: Implemented in the `patriot-network` module it contains the necessary tools and procedures, that
+allows the network simulation and deployment of various parts of System Under Test into the simulated environment
+as well as connection with physical parts of the SUT. It is built on top of Docker Container Platform, which provides
+optimal tools for the network virtualization needed for the testing purposes. It also secures the sandboxing of the
+virtualized parts of the SUT, so the possible influence between them is minimized in the TestBed.
+
+Patriot data generator:: Part of framework implemented in the `patriot-data-generator` module which defines
+interfaces for the simulated device creation. It allows building the software device by a composition of
+several components, which allows combining different types of random data generators, transformation functions, and protocol wrappers to allow flexibility.  
+
+
