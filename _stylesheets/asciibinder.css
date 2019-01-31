@@ -4,6 +4,26 @@ Image: "Spin" https://www.flickr.com/photos/eflon/3655695161/
 Author: eflon https://www.flickr.com/photos/eflon/
 License: https://creativecommons.org/licenses/by/2.0/
 ---------------------------------------------------------------*/
+h1, h2, h3 {
+  font-family: 'Quicksand', sans-serif;
+}
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+p {
+  color: rgb(79, 82, 76);
+}
+
+.email-link {
+  font-size: x-large;
+}
+
+.email-link a {
+  color: rgb(172, 27, 43)
+}
+
 .attribution {
   text-align: center;
   position: relative;
@@ -386,20 +406,6 @@ table.tableblock #preamble > .sectionbody > .paragraph:first-of-type p { font-si
 .literalblock pre > code, .literalblock pre[class] > code, .listingblock pre > code, .listingblock pre[class] > code { display: block; }
 .listingblock > .content { position: relative; }
 .listingblock:hover code[class*=" language-"]:before { text-transform: uppercase; font-size: 0.9em; color: #999; position: absolute; top: 0.375em; right: 0.375em; }
-.listingblock:hover code.asciidoc:before { content: "asciidoc"; }
-.listingblock:hover code.clojure:before { content: "clojure"; }
-.listingblock:hover code.css:before { content: "css"; }
-.listingblock:hover code.go:before { content: "go"; }
-.listingblock:hover code.groovy:before { content: "groovy"; }
-.listingblock:hover code.html:before { content: "html"; }
-.listingblock:hover code.java:before { content: "java"; }
-.listingblock:hover code.javascript:before { content: "javascript"; }
-.listingblock:hover code.python:before { content: "python"; }
-.listingblock:hover code.ruby:before { content: "ruby"; }
-.listingblock:hover code.sass:before { content: "sass"; }
-.listingblock:hover code.scss:before { content: "scss"; }
-.listingblock:hover code.xml:before { content: "xml"; }
-.listingblock:hover code.yaml:before { content: "yaml"; }
 .listingblock.terminal pre .command:before { content: attr(data-prompt); padding-right: 0.5em; color: #999; }
 .listingblock.terminal pre .command:not([data-prompt]):before { content: '$'; }
 table.pyhltable { border: 0; margin-bottom: 0; }
