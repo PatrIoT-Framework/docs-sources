@@ -43,7 +43,7 @@ Name: API Documentation
 Dir: docs
 Topics:
   - Name: Network Simulator
-    File: network-simulator
+    File: network-sim
 ---
 Name: Data Generator Documentation
 Dir: docs
