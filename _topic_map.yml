@@ -36,7 +36,7 @@ Topics:
 Name: Framework Documentation
 Dir: docs
 Topics:
-  - Name: Framework
+  - Name: General information
     File: framework
 ---
 Name: API Documentation

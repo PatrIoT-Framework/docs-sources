@@ -1,9 +1,9 @@
 :source-highlighter: highlightjs
 
 [id='data-generator-api']
-== Data generator 
+= Data generator
 
-=== Description
+== Description
 This library provides two methods of data generation:
 
 Polling:: generated data are returned to the user by calling the `requestData(params)` method on Device.
@@ -37,7 +37,7 @@ The library provides few preconfigured devices that are ready for use. The idea 
 * DefaultComposition
 * DHT11
 
-=== Functionality
+== Functionality
 
 The packages currently offered are the following:
 
@@ -53,7 +53,7 @@ TimeSimulation::  provides the possibility to simulate Device in time. Time inte
 
 DataObservable:: simple Observer Pattern, designed for observing Device whenever it produces new data. This is important mostly because time simulation polls data automatically, therefore users ability to retrieve a generated value from the device is denied. Observer fills this gap by providing the tool for catching and reacting for a data creation event.
 
-=== Usage
+== Usage
 
 User needs to create new class that implements Observer.footnote:[ https://docs.oracle.com/javase/8/docs/api/java/util/Observer.html ].
 The device holds a list of Observables that will be notified as soon as new data are generated. This list is updated by registering the device to DataObservable class.
@@ -63,7 +63,7 @@ DataWrapper:: provides tools that allow to wrap data to common structures like J
 
 NetworkAdapter:: provides classes when used with device allows the user to send data to the destination. All he needs is to select the desired protocol, REST, MQTT or design his own by implementing the NetworkAdapter interface and generated data will be delivered to right receiver.
 
-==== Simple example - device with data on pooling
+=== Simple example - device with data on pooling
 
 A base for our device is properly configured data feed. For this example
 
@@ -86,7 +86,7 @@ Get generated data
         device.requestData()
 ----
 
-===== Simple example - device with data on pooling
+==== Simple example - device with data on pooling
 
 The first example is nice, but it returns “random” value from definition scope of normal distribution.
 As in the first example we need data feed and device
@@ -98,7 +98,7 @@ Sensor device = new Thermometer("ThermometerExample", dataFeed);
 ----
 
 
-===== Time Simulation example
+==== Time Simulation example
 
 Now, we know how to set up a simple device.
 Define device as we did in previous examples

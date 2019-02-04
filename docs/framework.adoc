@@ -1,6 +1,6 @@
 :source-highlighter: highlightjs
 
-== Introduction
+= Introduction
 
 The scope of this document is to bring you the overview of Patriot Framework, which
 is state of the art implementation of tools necessary for integration testing of IoT
@@ -23,12 +23,12 @@ for the sensory data generation. It provides several different methods, how to o
 functionality. It also describes mathematical and statistical principles, which are used by the
 component itself.
 
-=== Overview
+== Overview
 This chapter briefly covers the overview of the framework and its implemented features.
 It shows the mapping of the abstract components to the existing ones and describes 
 the structure of the project itself.
 
-==== Components
+=== Components
 
 In the design phase of the solution, we've identified nine components which together
 covers all the areas of interest and possible problems that testing of IoT application
@@ -88,7 +88,7 @@ implements it.
 
 |===
 
-==== Modules of the framework
+=== Modules of the framework
 
 The PatrIoT framework is split into three main modules and one tool, that contains the main functionality and
 implements the components of the framework. 

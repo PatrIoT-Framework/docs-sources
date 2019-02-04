@@ -10,13 +10,13 @@ Technology project TH02010296-V8
 :xrefstyle: short
 :toc:
 
-include::intro.adoc[]
+include::./docs/intro.adoc[]
 
-include::framework.adoc[]
+include::./docs/framework.adoc[]
 
-include::patriot-api.adoc[]
+include::./docs/patriot-api.adoc[]
 
-include::network-sim.adoc[]
+include::./docs/network-sim.adoc[]
 
-include::data-generator.adoc[]
+include::./docs/data-generator.adoc[]
 

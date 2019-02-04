@@ -2,7 +2,7 @@
 :source-highlighter: highlightjs
 
 [id='network-simulator-api']
-== Network simulator 
+= Network simulator
 
 Network Simulator is the most complex feature of Patriot framework. It implements logic necessary
 to deploy virtual network environment where the parts of System Under Test, or whole SUT, can be
@@ -27,7 +27,7 @@ from one another.
 The Patriot framework embraces those properties and builds on top of them scalable solution, that allows
 preparing, deploy and test components of the System Under Test. 
 
-=== Router 
+== Router
 
 One of the necessary parts for the Network Simulation is a component called a router. 
 The router is in general device, which connects together two or more networks on L3 ISO/OSI level,
@@ -58,7 +58,7 @@ for the Patriot framework. The `$DESIRED_TAG` is then expected value which shoul
 dependencies ready for the execution. 
  
 [id='simple-workflow']
-=== Basic scenario
+== Basic scenario
 
 The basic scenario shows how the network topology is set up within Network Simulator and
 how the components are integrated to achieve the desired outcome. The scenario can be broke down
@@ -75,7 +75,7 @@ Those steps should be used in the series as is defined before because it will no
 possible errors due to missed dependencies.
 
 [id='defining-routers']
-==== Defining routers
+=== Defining routers
 
 The first step is to define needed routers in the Patriot framework context, which will later
 connect networks together into the desired topology. These objects are only blueprints for the Network Simulator runtime, hence the only attribute for the router in this step is only its
@@ -90,7 +90,7 @@ Router r = new Router("TRt")
 ----
 
 [id='defining-networks']
-==== Defining networks
+=== Defining networks
 
 A network is another object that is used for Topology creation, it defines one address pool,
 which interconnects all containers associated with it. 
@@ -126,11 +126,11 @@ Each CalcRoute object has 2 attributes:
 
 .Schema
 [#img-schema]
-image::network.png[]
+image::../../_images/network.png[]
 
 <<<
 
-==== Comperhensive example 
+=== Comperhensive example
 
 To show the Network Simulator in action, let's assume the following scenario: we want to create
 the network topology that consists of three networks
@@ -248,7 +248,7 @@ After all of those commands are executed, our topology is ready to be deployed.
 
 
 [id='initializing-networks-in-docker']
-=== Initializing networks in Docker
+== Initializing networks in Docker
 
 Fro the start of simulated network  `NetworkManager` method named `connect` and specify the following 2 parameters:
 
@@ -263,7 +263,7 @@ routers = networkManager.connect(topology, routers);
 The method returns a HashMap of updated routers with added corresponding physical interfaces, their addresses and names.
 
 [id='calculating routes']
-=== Calculating routes
+== Calculating routes
 
 For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. The method need only topology table as argument.
 
@@ -272,7 +272,7 @@ For calculating routes is used *Floyd-Warshall* algorithm which basically works 
 routers = networkManager.calcRoutes(topology);
 ----
 
-=== Process routing table to routes
+== Process routing table to routes
 
 After calculating user needs process routing table with shortest paths to route format used in physical routing tables on routers and also for each calculated route must run method for finding physical next hop interface on the router which match next hop networks network address. A path is parsed to iproute2 format. For processing, there is only one method named process routes with 1 argument and it’s calculated topology table. Method return HashMap where the key is router name and value is parsed route.
 
@@ -281,7 +281,7 @@ After calculating user needs process routing table with shortest paths to route 
 HashMap hashMap = networkManager.processRoutes(topology);
 ----
 
-=== Set routes to routers routing tables
+== Set routes to routers routing tables
 
 For this action, we are currently using python (flask) REST running on each router. Also, there is a Java controller for this REST. Controller use java.net package for requesting REST.
 
@@ -292,7 +292,7 @@ networkManager.setRoutes(hashMap, routers);
 
 <<<
 
-=== Deployment of tested application
+== Deployment of tested application
 
 The last part of the Network Simulator is support for the deployment of a tested application
 into the simulated environment. In the current state the basic prerequisite is, that the

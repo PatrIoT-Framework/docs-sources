@@ -1,7 +1,7 @@
 :source-highlighter: highlightjs
 
 [[patriot-api]]
-== PatrIoT API
+= PatrIoT API
 
 Patriot API is the core part of the framework, and it defines the means necessary for the
 testing to be effective as well as it brings the dependencies of upstream tools, and
@@ -16,7 +16,7 @@ base namespace for the whole project, following package names, are stripped of t
 JUnit Runner
 * `hub` provides the controlling interface over simulated network and data generators.
 
-=== The test scenario
+== The test scenario
 
 In the realm of unit testing the test if mostly simple, the test needs to create some
 clean environment, set up the tested unit and sometimes mock some of the functionality, that is depending
@@ -26,7 +26,7 @@ for this functionality, which brings some problems when such tools are being use
 On the other hand, integration tests mainly rely on the existence of the tested environment, that is
 set up before the Test Run starts and shut down (if needed) after the Test Run is done. Also, the requirement for the complete tests isolation is not entirely desirable since for many integration tests the setup is the same for several test cases and on many occasions, the tests are just stacked on themselves.
 
-==== JUnit 5
+=== JUnit 5
 
 The first thing, that will be described is how the tests are created in the JUnit its core concepts,
 this introduction will be brief and it will cover only very basics of the technology. For a more comprehensive description, please read https://junit.org/junit5/docs/current/user-guide/ .
@@ -63,7 +63,7 @@ The tests can be generally be organized in the following order:
 
  
 
-==== Environment setup 
+=== Environment setup
 
 The limitation of the JUnit for the environment preparation is commonly solved by extraction of the setup procedures outside the test process and their execution before the test procedure starts. 
 This approach, however, brings many challenges, since the setup of the environment is typically set with 
@@ -171,7 +171,7 @@ public class SimpleProvisioner extends PatriotSetupExtension {
 ----
 
 
-=== Conditional execution
+== Conditional execution
 
 JUnit implements several methods for conditional execution of Test cases. Every Test Class or Test Method can be annotated, in order to set under which conditions it should or shouldn't be executed. Currently, supported conditions are:
 
@@ -222,7 +222,7 @@ io.patriot_framework.junit.extensions.ConditionalDisableExtension
 ----
 
 
-=== Test environment control 
+== Test environment control
 
 One of the specified components of the framework is `Hub`, which is responsible for conducting actions on the life
 System Under Test.  The Hub component is implemented by singleton class `PatriotHub` and currently supports both,
@@ -254,7 +254,7 @@ Another option would be by modification of the `pom.xml` file, that defines your
 anywhere within `<project>` tags (but not nested).
 
 
-=== Reporting and monitoring
+== Reporting and monitoring
 
 Reporting is currently done by default JUnit reporter because in the current state, the Patriot Framework doesn't need to report anything special
 however, for future releases is such support expected and even developed on experimental branches of development version.
@@ -263,7 +263,7 @@ test execution is by using `maven-surefire-plugin`, which is default provider of
 integrated with surefire plugin, and test results are presented in the xUnit XML test report format, which is currently one of the most
 use due to the possibility of machine processing.
 
-==== Monitoring
+=== Monitoring
 
 Monitoring for the Patriot Framework is currently implemented by setting API endpoint for https://www.elastic.co/guide/index.html[Elasticsearch] database to the
 Patriot environment.
@@ -286,7 +286,7 @@ To set up the Elasticsearch the simpliest way is to run Docker container, which 
 * Deployment is easy and doesn't need basically any special configuration
 * In combination with the Simulated Network, Elasticsearch will be part of the Simulated Environment
 
-===== Set up Elasticsearch
+==== Set up Elasticsearch
 To obtain Elasticsearch for deployment into Docker container platform it is enough to use following command
 
 [source,shell]
