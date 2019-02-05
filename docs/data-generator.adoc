@@ -83,7 +83,7 @@ Get generated data
 
 [source,java]
 ----
-        device.requestData()
+device.requestData()
 ----
 
 ==== Simple example - device with data on pooling
