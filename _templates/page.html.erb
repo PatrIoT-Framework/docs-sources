@@ -38,13 +38,13 @@
 
         <div class="collapse navbar-collapse" id="navbarsExample07">
           <ul class="navbar-nav mr-auto">
-            <li class="nav-item active">
+            <li class="nav-item">
               <a class="nav-link" href="#main">Home <span class="sr-only">(current)</span></a>
             </li>
             <li class="nav-item">
               <a class="nav-link" href="#features">Features</a>
             </li>
-            <li class="nav-item">
+            <li class="nav-item active">
               <a class="nav-link" href="../welcome/index.html">Documentation</a>
             </li>
             <li class="nav-item">
@@ -76,7 +76,7 @@
       </li>
     </ol>
     <div class="row row-offcanvas row-offcanvas-left">
-      <div class="col-xs-8 col-sm-3 col-md-3 sidebar sidebar-offcanvas">
+      <div class="col-xs-8 col-sm-5 col-md-3 sidebar sidebar-offcanvas">
         <%= render("_templates/_nav.html.erb", :navigation => navigation, :group_id => group_id, :topic_id => topic_id, :subgroup_id => subgroup_id, :subtopic_shim => subtopic_shim) %>
       </div>
       <div class="col-xs-12 col-sm-9 col-md-9 main">
