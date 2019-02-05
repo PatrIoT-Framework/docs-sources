@@ -27,17 +27,18 @@ Topics:
   - Name: Welcome
     File: index
 ---
-Name: Get Started
-Dir: docs
-Topics:
-  - Name: Introduction
-    File: intro
----
 Name: Framework
 Dir: docs
 Topics:
   - Name: General information
     File: framework
+---
+Name: API
+Dir: docs
+Topics:
+  - Name: PatrIOT API
+    File: patriot-api
+
 ---
 Name: Network
 Dir: docs
@@ -50,15 +51,4 @@ Dir: docs
 Topics:
   - Name: Data Generator
     File: data-generator
----
-Name: PatrIOT API
-Dir: docs
-Topics:
-  - Name: PatrIOT API
-    File: patriot-api
----
-Name: Overview
-Dir: docs
-Topics:
-  - Name: Overview
-    File: overview
+
