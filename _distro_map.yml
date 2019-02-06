@@ -5,6 +5,6 @@ ascii_binder:
   site_name: Home
   site_url: https://patriot-framework.io/docs
   branches:
-    sources:
+    master:
       name: Latest
       dir: latest
