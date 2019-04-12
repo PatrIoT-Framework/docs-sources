@@ -43,33 +43,55 @@ The router component of Patriot framework is implemented in the `patriot-router`
 the module implements a software router with RESTfull API, which allows Patriot framework to set it
 up and control its behavior.
 
-To build the router you only need a Docker installed
-
 [source,shell]
 .Building router Docker image
 ----
-cd patriot-router
-docker build . --tag ${DESIRED_TAG}
+docker pull patriotframework/patriot-router:latest
 ----
 
-This set of steps will create a new image stored in the local Docker storage, which is ready to use
-for the Patriot framework. The `$DESIRED_TAG` is then expected value which should be set to the
-`io.patriot_framework.router` property. After the router is built, the Network Simulator has all the
-dependencies ready for the execution. 
- 
+This step will pull an image stored in the DockerHub, which is ready to use for the Patriot framework router. If you want to do any modification of
+routers behavior you can do it via Dockerfile, but CMD and ENTRYPOINT must stay ! After you build your routers image, you have to set tag to the
+`io.patriot_framework.router` property. After the router is built or pulled, the Network Simulator has all the dependencies ready for the execution.
+
+== Application
+
+Application has to be build on base image from patriotframework docker hub. You can modify your application container, but stay
+must same. Java and go are fully installed in base image. Specify CMD with command which will run your java application.
+After all modifications are done, you have to build image from your Dockerfile. Tag used for building image will be later used for deploying application
+to topology.
+
+[source,shell]
+.Pulling application base image
+----
+docker pull patriotframework/simulator-base:latest
+----
+
+[source,dockerfile]
+.Updating Dockerfile
+----
+FROM patriotframework/simulator-base:latest
+CMD["java", "-jar", "generator.jar", "-c", "config.yaml"]
+----
+
+[source,shell]
+.Building docker image
+----
+docker build -t MY_TAG DOCKERFILE_DIRECTORY
+----
+
 [id='simple-workflow']
 == Basic scenario
 
 The basic scenario shows how the network topology is set up within Network Simulator and
 how the components are integrated to achieve the desired outcome. The scenario can be broke down
-into the following steps. 
+into the following steps.
 
-. Define routers that will interconnect the virtual networks
-. Define networks that will be interconnected in the topology
-. Define topology which is the high-level connection of the networks,
-  it allows networks to be built into the tree structure.
-. Call manager to interconnect networks via deployed routers
-. Call manager to process and set routes to routing tables
+. Define network topology which is the high-level connection of the networks,
+it allows networks to be built into the tree structure.
+.. Define routers that will interconnect the virtual networks
+.. Define networks that will be interconnected in the topology
+.. Define routes between networks
+. Call manager to deploy topology
 
 Those steps should be used in the series as is defined before because it will not cause
 possible errors due to missed dependencies.
@@ -79,20 +101,19 @@ possible errors due to missed dependencies.
 
 The first step is to define needed routers in the Patriot framework context, which will later
 connect networks together into the desired topology. These objects are only blueprints for the Network Simulator runtime, hence the only attribute for the router in this step is only its
-name of type `String`.  For later use, these Router objects must be stored in 
-`HashMap<String, Router>`.
+name of type `String`.  For later use, these Router objects can be build with RouterBuilder.
 
 [source,java]
 .Creation of router
 ----
-import io.patriot_framework.network.simulator.api.model.Router;
-Router r = new Router("TRt")
+import io.patriot_framework.network.simulator.api.model.devices.router.RouterImpl;
+RouterImpl r = new RouterIml("TRt")
 ----
 
 [id='defining-networks']
 === Defining networks
 
-A network is another object that is used for Topology creation, it defines one address pool,
+A TopologyNetwork is another object that is used for Topology creation, it defines one address pool,
 which interconnects all containers associated with it. 
 When initializing networks, the following 3 main attributes are expected
 
@@ -104,16 +125,15 @@ When initializing networks, the following 3 main attributes are expected
   be set to `true`.
 
 Every router has a default gateway that targets the shortest path to internet network!
-All networks must be stored in `ArrayList<Network>`.
 
 [source,java]
 .Initialization of Network object
 ----
-import io.patriot_framework.network.simulator.api.model.Router;
+import io.patriot_framework.network.simulator.api.model.network.TopologyNetwork;
 
-Network tNet = new Network("Teacher", "192.168.0.0", 28);
+TopologyNetwork tNet = new TopologyNetwork("Teacher", "192.168.0.0", 28);
 ----
-For now, the entire topology is stored in Network objects. There is one more attribute named CalcRoutes that points to a list of CalcRoute objects. The list contains the description of topology (routes).
+For now, the entire topology is stored in TopologyNetwork objects. There is one more attribute named CalcRoutes that points to a list of CalcRoute objects. The list contains the description of topology (routes).
 Each CalcRoute object has 2 attributes:
 
 * *NextHop object*
@@ -139,169 +159,136 @@ the network topology that consists of three networks
 * Second one is for students
 * Third one is the backbone
 * And also we want to have a connection to the Internet
+* All parts of topology are for now created by docker, so we need to specify Docker as creator for whole topology
 
 The following snippet shows basic objects that are needed for the simulation. 
 
 [source,java]
-.Create basic objects
-----
-HashMap<String, Router> routers = new HashMap<>();
-
-routers.put("TRt", new Router("TRt"));
-
-routers.put("SRt", new Router("SRt"));
-
-routers.put("MainRt", new Router("MainRt"));
-
-ArrayList<Network> topology = new ArrayList<>(4);
-
-Network tNet = new Network("Teacher", "192.168.0.0", 28);
-
-Network sNet = new Network("Student", "192.168.16.0", 28);
-
-Network bNet = new Network("Backbone", "172.16.0.0", 16);
-
-Network iNet = new Network();
-iNet.setName("internet");
-Inet.setInternet(true);
+.Create basic objects using TopologyBuilder
 ----
 
-After the base objects are defined, now it is time to define the interconnection
-of the networks by putting the Routers in place.
+Topology topology = new TopologyBuilder(4)
+                .withCreator("Docker")
+                .withRouters()
+                    .withName("TRt")
+                    .createRouter()
+                    .withName("SRt")
+                    .createRouter()
+                    .withName("MainRt")
+                    .withCorner(true)
+                    .createRouter()
+                    .addRouters()
+                .withNetwork("tNet")
+                    .withIP("192.168.0.0")
+                    .withMask(28)
+                    .create()
+                .withNetwork("sNet")
+                    .withIP("192.168.16.0")
+                    .withMask(28)
+                    .create()
+                .withNetwork("bNet")
+                    .withIP("172.16.0.0")
+                    .withMask(16)
+                    .create()
+                .withNetwork("iNet")
+                    .withInternet(true)
+                    .create()
+----
+
+After the base objects are defined, now it's time to define the interconnection
+of the networks by putting the Routers in place. We have to specify route just one time,
+api will set same route in opposite direction (We specify tNet -> bNet and api will set bNet -> tNet too).
 
 [source,java]
 .Set up the connection for Teacher network 
 ----
-topology.addAll(Arrays.asList(tNet, sNet, bNet, iNet));
-
-Integer routNeedCalc = topology.size + 1;
-
-tNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 0), null));
-
-tNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 1), routNeedCalc));
-
-tNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("TRt"), 2), 1));
-
-tNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 3), routNeedCalc));
+int routNeedCalc = topology.getNetworks().size() + 1;
+                .withRoutes()
+                    .withSourceNetwork("tNet")
+                    .withDestNetwork("sNet")
+                    .viaRouter((RouterImpl)null)
+                    .withCost(routNeedCalc)
+                    .addRoute()
+                    .withSourceNetwork("tNet")
+                    .withDestNetwork("bNet")
+                    .withCost(1)
+                    .viaRouter("TRt")
+                    .addRoute()
+                    .withSourceNetwork("tNet")
+                    .withDestNetwork("iNet")
+                    .withCost(routNeedCalc)
+                    .viaRouter((RouterImpl)null)
+                    .addRoute
 ----
 
 [source,java]
 .Set up the connection for Student network
 ----
-sNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 0), routNeedCalc));
-
-sNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 1), null));
-
-sNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("SRt"), 2), 1));
-
-sNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 3), routNeedCalc));
+                    .withSourceNetwork("sNet")
+                    .withDestNetwork("bNet")
+                    .withCost(1)
+                    .viaRouter("SRt")
+                    .addRoute()
+                    .withSourceNetwork("sNet")
+                    .withDestNetwork("iNet")
+                    .withCost(routNeedCalc)
+                    .viaRouter((RouterImpl)null)
+                    .addRoute()
 ----
 
 [source,java]
 .Set up connection for backbone network
 ----
-bNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("TRt"), 0), 1));
-
-bNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("SRt"), 1), 1));
-
-bNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(null, 2), null));
-
-bNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("MainR"), 3), 1));
+                    .withSourceNetwork("bNet")
+                    .withDestNetwork("iNet")
+                    .withCost(1)
+                    .viaRouter("MainR")
+                    .buildRoute()
+                    .buildRoutes()
+                .build();
 ----
 
-[source,java]
-.Set up the Internet connection
-----
-iNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 0), routNeedCalc));
-
-iNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 1), routNeedCalc));
-
-iNet.getCalcRoutes().add(
-    new CalcRoute(
-        new NextHop(routers.get("MainR"), 2), 1));
-
-iNet.getCalcRoutes().add(
-    new CalcRoute(new NextHop(null, 3), null));
-----
-
+For iNet network we doesn't have more routes to specify.
 After all of those commands are executed, our topology is ready to be deployed.
 
 
 [id='initializing-networks-in-docker']
-== Initializing networks in Docker
+== Deployment topology to environment
 
-Fro the start of simulated network  `NetworkManager` method named `connect` and specify the following 2 parameters:
+For deployment we need initialize Manager with 4 parameters:
 
-    * topology of type `ArrayList<Network>`
-    * routers of type `HashMap<Router>`
+* List<Controller> controllers that will be used for environment creation
+* Patriot router image tag
 
-[source,java]
-----
-routers = networkManager.connect(topology, routers);
-----
-
-The method returns a HashMap of updated routers with added corresponding physical interfaces, their addresses and names.
-
-[id='calculating routes']
-== Calculating routes
-
-For calculating routes is used *Floyd-Warshall* algorithm which basically works like distance vector algorithm implemented in routing protocols like RIP. The method need only topology table as argument.
 
 [source,java]
+.Deployment of topology
 ----
-routers = networkManager.calcRoutes(topology);
+Manager networkManager = PatriotHub.getInstance().getManager();
+networkManager.setControllers(Arrays.asList(new DockerController()));
+networkManager.deploy(topology);
 ----
 
-== Process routing table to routes
+== Centralized logging
 
-After calculating user needs process routing table with shortest paths to route format used in physical routing tables on routers and also for each calculated route must run method for finding physical next hop interface on the router which match next hop networks network address. A path is parsed to iproute2 format. For processing, there is only one method named process routes with 1 argument and it’s calculated topology table. Method return HashMap where the key is router name and value is parsed route.
+Central log server can be set with Manager attributes:
 
+* monitoringAddr - Logstash or Graylog ip address
+* monitoringPort - Logstash or Graylog port
+
+If these parameters are set, all logs on stdout and stderr are logged into central server.
+Deployment of log server described in <<patriot-api.adoc#monitoring, patriot-monitoring>>
 [source,java]
-----
-HashMap hashMap = networkManager.processRoutes(topology);
-----
-
-== Set routes to routers routing tables
-
-For this action, we are currently using python (flask) REST running on each router. Also, there is a Java controller for this REST. Controller use java.net package for requesting REST.
-
-[source,java]
-----
-networkManager.setRoutes(hashMap, routers);
-----
-
-<<<
 
 == Deployment of tested application
 
 The last part of the Network Simulator is support for the deployment of a tested application
-into the simulated environment. In the current state the basic prerequisite is, that the
-application is containerized.
+into the simulated environment. In the current state the basic prerequisite is, that the application is containerized.
 
 [source,java]
 .Deployment of an application into the simulated environment
 ----
-    NetworkManager networkManager = PatriotHub.getInstance().getManager();    
+    Manager networkManager = PatriotHub.getInstance().getManager();
     Topology topology = new TopologyBuilder(2)
                 .withRouters()
                 .withName("R1")
@@ -322,9 +309,10 @@ application is containerized.
                     .addRoute()
                 .buildRoutes()
                 .build();
-        networkManager.connect(topology);
-        Manager m = new DockerManager();
-        Container dC = m.createContainer("testedApplication", "0.1-SNAPSHOT");
-        m.startContainer(dC);
-        m.connectContainerToNetwork(dC, new DockerNetwork(topology.getNetworks().get(1).getName()));
----- 
+        networkManager.setControllers(Arrays.asList(new DockerController());
+        networkManager.deploy(topology);
+        Application app = new Application("Generator", "Docker");
+        networkManager.deployDeviceToNetwork(app,
+        topology.getNetworks().get(1), topology, "app-1.0-SNAPSHOT");
+
+----
