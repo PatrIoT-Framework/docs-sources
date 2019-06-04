@@ -10,9 +10,9 @@ Polling:: generated data are returned to the user by calling the `requestData(pa
 This allows the user to get data on demand with custom parameters.
 The number and types of parameters for this method depends mostly on the DataFeed implementation provided for the Device.
 
-Wrapping `Device` with `TimeSimulation`::
+Wrapping `Device` with `ActiveDevice`::
 //user adds new possibilities for data generation.
-In this case the `requestData()` method is called periodically by `TimeSimulation` and it can be used as a standalone device.
+In this case the `requestData()` method is called periodically by `ActiveDevice` and it can be used as a standalone device.
 
 For data manipulation, the user is advised to perform the following additional steps:
 
@@ -23,19 +23,32 @@ This way data can be sent to valid endpoint using the REST protocol.
 Using the `Observer` pattern, the user is able to catch important information from the data creation process without using debugging tools or viewing log messages.
 For information on deploying
 
-There are 2 main types of `Device`.
+Users can utilize three main data generators types:
 
-Sensor:: A simple device that contains and performs operations on a single `DataFeed`.
+Sensor:: interface adds possibility to define List of `DataFeed` to `Device`. This provides possibility to simulate
+data generation for multiple data sources. For example commonly known DHT11 temperature-humidity sensor is working with
+two values simultaneously. This requires possibility to define multiple DataFeeds for one device.
 
-Composition:: Solves a problem, that not all devices are sources of just one type of data. For example commonly known DHT11 temperature-humidity sensor is working with two values simultaneously. This requires possibility to define multiple DataFeeds for one device
+SimpleSensor:: extends `Sensor` and restrict its functionality to use only one `DataFeed` as it is convenient
+to sometimes utilize sensor that is monitoring only one value.
+
+Actuator:: different type of `Device` than `Sensor`. Offers methods to simulate real life behaviour of actuators.
+Important part of this concept is `StateMachine.class` which holds information about current state and time duration,
+that is needed for actuator to finish simulated action. Handles any transitions between states if necessary.
 
 The library provides few preconfigured devices that are ready for use. The idea behind them is to simplify the creation process for the user in case he wants to create commonly known devices but to offer him freedom in configuring his own.
+
+Sensors:
 
 * Default
 * Hygrometer
 * Thermometer
-* DefaultComposition
 * DHT11
+
+Actuators:
+
+* LinearActuator
+* RotaryActuator
 
 == Functionality
 
@@ -47,9 +60,9 @@ SSJ (Stochastic Simulation in Java) - Java library providing a tool for stochast
 Expression approach, where a user defines an expression (function) which solutions represents expected data stream
 “Logic” driven approach. A user is fully capable to customize data generating class as long as it implements DataFeed interface
 
-Device:: (Sensor, Composition)  back and bone of library, brings parts of the library together. Gives meaning for generated data which are acquired from individual data feeds. Holds information like UUID, label, and description.
+Device:: (Sensor, SingleSensor, Actuator)  back and bone of library, brings parts of the library together. Gives meaning for generated data which are acquired from individual data feeds. Holds information like UUID, label, and description.
 
-TimeSimulation::  provides the possibility to simulate Device in time. Time intervals are determined with data feed like with device. Classes create an environment for a device where asynchronous tasks poll data from it. This is way how to simulate real, standalone devices (it is needed to configure NetworkAdapter for time simulated device, for it to be able to send data with a specific protocol to right destination)
+ActiveDevice::  provides the possibility to simulate Device in time. Time intervals are determined with data feed like with device. Classes create an environment for a device where asynchronous tasks poll data from it. This is way how to simulate real, standalone devices (it is needed to configure NetworkAdapter for time simulated device, for it to be able to send data with a specific protocol to right destination)
 
 DataObservable:: simple Observer Pattern, designed for observing Device whenever it produces new data. This is important mostly because time simulation polls data automatically, therefore users ability to retrieve a generated value from the device is denied. Observer fills this gap by providing the tool for catching and reacting for a data creation event.
 
@@ -76,7 +89,7 @@ Create Device with DataFeed. In this case, simple Sensor will be enough.
 
 [source, java]
 ----
-Sensor device = new Thermometer("ThermometerExample", dataFeed);
+SimpleSensor device = new Thermometer("ThermometerExample", dataFeed);
 ----
 
 Get generated data
@@ -94,32 +107,32 @@ As in the first example we need data feed and device
 [source,java]
 ----
 DataFeed dataFeed = new NormalDistributionDataFeed(18, 3);
-Sensor device = new Thermometer("ThermometerExample", dataFeed);
+SimpleSensor device = new Thermometer("ThermometerExample", dataFeed);
 ----
 
 
-==== Time Simulation example
+==== Active Device example
 
 Now, we know how to set up a simple device.
 Define device as we did in previous examples
 In order to simulate device in time - to be able to send data periodically in set intervals, we need to wrap it with running environment called time simulation
-Like device, time simulation also needs some data feed to be able to determinate mentioned time intervals
+Like device, `ActiveDevice` also needs some data feed to be able to determinate mentioned time intervals
 
 [source,java]
 ----
 DataFeed timeFeed = new LinearDataFeed(2000);
 ----
 
-We create an instance of time simulation
+We create an instance of `ActiveDevice` to simulate our device in time.
 
 [source,java]
 ----
-TimeSimulation sim = new TimeSimulationImpl(timeFeed, device);
+ActiveDevice active = new ActiveDeviceImpl(timeFeed, device);
 ----
 
 At this point, the device needs to configure. Finally, we start the simulation.
 
 [source,java]
 ----
-sim.simulate();
+active.start();
 ----
