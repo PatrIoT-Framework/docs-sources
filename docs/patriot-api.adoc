@@ -263,68 +263,214 @@ test execution is by using `maven-surefire-plugin`, which is default provider of
 integrated with surefire plugin, and test results are presented in the xUnit XML test report format, which is currently one of the most
 use due to the possibility of machine processing.
 
+[[monitoring]]
 === Monitoring
 
-Monitoring for the Patriot Framework is currently implemented by setting API endpoint for https://www.elastic.co/guide/index.html[Elasticsearch] database to the
+Monitoring for the Patriot Framework is currently implemented by setting Logstash or Graylog address into containers log parameter.
+
+API endpoint for https://www.elastic.co/guide/index.html[Elasticsearch] database to the
 Patriot environment.
 Elasticsearch database is currently one of the most used databases for Log aggregation tools, like EFK stack (Elasticsearch Fluentd and Kibana) in
 containerized clusters and ELK stack (Elasticsearch Logstash and Kibana) for real and virtual servers.
 
-In the case of Patriot Framework, usage of Elasticsearch is aimed to collect dynamic data from the System Under Test rather than for test logs collection. 
-Currently, are reported following events:
+In the case of Patriot Framework, usage of centralized monitoring is aimed to collect all data from the System Under Test rather than for test logs collection.
+Currently, are reported all events from simulated environment logged to stdout or stderr, for example:
 
-* Creation of a network
-* Deletion of network
-* Connection of router to the Network
-* Disconnection of a router from the Network
-* Connection of application to network
+* Changes in routing tables
+* Default gateways
+* IPTables restriction
+* Sensor information
+* Application output
 
 All of those events can be then searched in the Elasticsearch database, or visualized by https://www.elastic.co/guide/en/kibana/current/introduction.html[Kibana], which is analytics and 
-visualization platform based on top of Elasticsearch. 
-To set up the Elasticsearch the simpliest way is to run Docker container, which has several advantages
+visualization platform based on top of Elasticsearch. Configuration of GELF input in logstash and graylog is requirement, otherwise log will not be readable or even collected.
+To set up the Elasticsearch the simplest way is to run Docker compose, which has several advantages:
 
-* Deployment is easy and doesn't need basically any special configuration
+* Deployment is easy and environment is fully configurable
+* Configuration of GELF input is very easy
 * In combination with the Simulated Network, Elasticsearch will be part of the Simulated Environment
 
-==== Set up Elasticsearch
+=== Set up Elasticsearch
+
+==== Graylog stack
+
+Graylog stack is built from 3 parts:
+
+* Graylog node for user interface
+* Elasticsearch node for data stash
+* MongoDB for metadata
+
+Graylog supports multiple log formats and inputs. GELF log format is natively supported by Graylog.
+Best way how to deploy Graylog stack is via docker-compose. First step of deployment process is installation of docker-compose.
+
+[source,shell]
+.Install docker-compose
+----
+sudo curl -L "https://github.com/docker/compose/releases/download/1.24.0/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+sudo chmod +x /usr/local/bin/docker-compose
+sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+docker-compose --version
+----
+
+Next step is to create docker-compose yaml file which will describe deployment of our stack. For security reasons please change
+administration and user password to Graylog node.
+
+[source,yaml]
+.Docker-compose.yml
+----
+version: '2'
+services:
+  # MongoDB: https://hub.docker.com/_/mongo/
+  mongodb:
+    image: mongo:3
+  # Elasticsearch: https://www.elastic.co/guide/en/elasticsearch/reference/5.6/docker.html
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:5.6.3
+    environment:
+      - http.host=0.0.0.0
+      - transport.host=localhost
+      - network.host=0.0.0.0
+      # Disable X-Pack security: https://www.elastic.co/guide/en/elasticsearch/reference/5.6/security-settings.html#general-security-settings
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - 9200:9200
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 1g
+  # Graylog: https://hub.docker.com/r/graylog/graylog/
+  graylog:
+    image: graylog/graylog:2.4.0-1
+    environment:
+      # CHANGE ME!
+      - GRAYLOG_PASSWORD_SECRET=somepasswordpepper
+      # Password: admin
+      - GRAYLOG_ROOT_PASSWORD_SHA2=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918
+      - GRAYLOG_WEB_ENDPOINT_URI=http://127.0.0.1:9000/api
+    links:
+      - mongodb:mongo
+      - elasticsearch
+    depends_on:
+      - mongodb
+      - elasticsearch
+    ports:
+      # Graylog web interface and REST API
+      - 9000:9000
+      # Syslog TCP
+      - 514:514
+      # Syslog UDP
+      - 514:514/udp
+      # GELF TCP
+      - 12201:12201
+      # GELF UDP
+      - 12201:12201/udp
+
+----
+
+This compose file describes:
+
+* Exposed ports
+** Port 9000 of the container to the host port 9000, the port 9000 will be open on localhost of the machine itself. Port is used for Graylog user interface
+** Port 514 of the container to the host port 514, the port 514 will be open on localhost of the machine itself. Port is used for tcp syslog log pipe.
+** Port 514 of the container to the host port 514/udp, the port 514/udp will be open on localhost of the machine itself. Port is used for udp syslog log pipe.
+** Port 9200 of the container to the host port 9200, the port 9200 will be open on localhost of the machine itself. Port is used for Elasticsearch
+** Port 12201 of the container to the host port 12201tcp/udp, the port 12201tcp/udp will be open on localhost of the machine itself. Port is used for GELF input.
+
+Last step of deployment process is to start compose. For this step you have to be in same folder where is located your docker-compose file
+
+[source,shell]
+.Start compose
+----
+docker-compose up
+----
+
+Whole stack can be after work removed with simple command
+[source,shell]
+.Remove stack
+----
+docker-compose down
+----
+
+==== Logstash stack
+
 To obtain Elasticsearch for deployment into Docker container platform it is enough to use following command
 
 [source,shell]
 .Pull Elasticsearch image
 ----
-docker pull docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+docker pull sebp/elk:latest
 ----
 
-After the pull is complete, the container can be started by following command, which creates new Docker container and starts services
-defined by images, in this case it will start Elasticsearch database.
+After the pull is complete, we have to create configuration file for logstash, because we need to specify gelf input port.
+But first create empty directory for our configuration file.
+
+[source, shell]
+.Create empty directory
+----
+mkdir logstash
+----
+
+[source]
+.Create logstash.conf for logstash
+----
+input {
+    gelf {
+        port => 12201
+        type => gelf
+    }
+}
+output {
+  elasticsearch {
+    hosts => ["http://localhost:9200"]
+  }
+}
+----
+
+Now we are ready to create Dockerfile, which will deliver our configuration file to it`s place and install gelf-input plugin.
+Dockerfile should be located in same directory as configuration file.
+
+[source,dockerfile]
+.Start Elasticsearch container
+----
+FROM sebp/elk
+ADD logstash.conf /etc/logstash/conf.d/30-output.conf
+
+WORKDIR ${LOGSTASH_HOME}
+RUN gosu logstash bin/logstash-plugin install logstash-input-gelf
+----
 
 [source,shell]
 .Start Elasticsearch container
 ----
-docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" docker.elastic.co/elasticsearch/elasticsearch:6.5.4
+docker build -t elastic-gelf CONFIGURATION_DIR
+docker run -p 5601:5601 -p 9200:9200 -p 5044:5044 -p 12201:12201/udp -it --name elk elastic-gelf
 ----
 
 The command will do the following steps
 
-* It will expose port 9200 of the container to the host port 9200, the port 9200 will be open on localhost of the machine itself 
-* It will expose port 9300 of the container to the host port 9300, which has the same behavior as above
-* Sets discovery environment variable to value `discovery.type=single-node`
+* It will build our elk container image with created configuration
+* It will expose port 5601 of the container to the host port 5601, the port 5601 will be open on localhost of the machine itself. Port is used for Kibana
+* It will expose port 9200 of the container to the host port 9200, the port 9200 will be open on localhost of the machine itself. Port is used for Elasticsearch
+* It will expose port 5044 of the container to the host port 5044, the port 5044 will be open on localhost of the machine itself. Port is used for Logstash
+* It will expose port 12201 of the container to the host port 12201/udp, the port 12201 will be open on localhost of the machine itself. Port is used for Logstash gelf udp input
 
-The reporting for the Patriot Framework components is then enabled by setting Property `io.patriot_framework.monitoring.addr` which is a combination of
-The IP address of running instance of Elasticsearch and port for API access (by default it is 9200). Because of the docker deployment
-option, in this case, it is necessary to use the IP address of Elasticsearch instead of localhost, because the monitoring entries will be delivered
-to Elasticsearch from the Docker platform. The IP address of running container can be obtained by running following command 
+The reporting for the Patriot Framework components is then enabled by setting Property `io.patriot_framework.monitoring.addr` which is IPv4 address of logstash.
+Because of the docker deployment option, in this case, it is necessary to use the IP address of Logstash instead of localhost, because the monitoring entries will be delivered
+to Elasticsearch from the Docker platform. The IP address of running container can be obtained by running following command.
 
 [source,shell]
 .Obtain Container IP address
 ----
-docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${NAME_OF_ELASTIC_CONTAINER}
+docker inspect --format '{{ .NetworkSettings.IPAddress }}' ${NAME_OF_ELASTIC_STACK}
 ---- 
 
 [source]
 .patriot.properties
 ----
-io.patriot_framework.monitoring.addr=192.168.12.12:9200
+io.patriot_framework.monitoring.addr=192.168.12.12
+io.patriot_framework.monitoring.port=12201
 ----
 
 
