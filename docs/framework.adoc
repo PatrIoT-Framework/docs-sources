@@ -94,7 +94,7 @@ The PatrIoT framework is split into three main modules and one tool, that contai
 implements the components of the framework. 
 
 * `patriot-api` module that defines basic APIs, and extensions to used technologies
-* `patriot-newtork` backend for the network simulation
+* `patriot-network` backend for the network simulation
 * `patriot-sensor-generator` module responsible for sensor data generation and emulation
 * `patriot-router` is a tool build as a part of the network simulation, that acts as a network router in the simulated network
 

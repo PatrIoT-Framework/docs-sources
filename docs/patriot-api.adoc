@@ -11,7 +11,7 @@ testing.
 All packages of the PatrIoT framework are prefixed with `io.patriot_framework` which is the
 base namespace for the whole project, following package names, are stripped of this prefix
 
-* `network.simulator.api` Base API for the network simulation. More about this topic in <<network-simulator-api>>
+* `network.simulator.api` Base API for the network simulation. 
 * `extensions` contains extensions for the JUnit framework, that enables features on top of existing
 JUnit Runner
 * `hub` provides the controlling interface over simulated network and data generators.

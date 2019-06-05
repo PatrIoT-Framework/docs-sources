@@ -40,12 +40,6 @@ Topics:
     File: patriot-api
 
 ---
-Name: Network
-Dir: docs
-Topics:
-  - Name: Network Simulator
-    File: network-sim
----
 Name: Data
 Dir: docs
 Topics:
