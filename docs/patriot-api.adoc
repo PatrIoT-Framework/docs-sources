@@ -1,3 +1,4 @@
+:toc:
 :source-highlighter: highlightjs
 
 [[patriot-api]]

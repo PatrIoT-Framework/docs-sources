@@ -27,22 +27,26 @@ Topics:
   - Name: Welcome
     File: index
 ---
-Name: Framework
+Name: Getting Started
 Dir: docs
 Topics:
   - Name: General information
     File: framework
 ---
-Name: API
+Name: Framework Base
 Dir: docs
 Topics:
-  - Name: PatrIOT API
+  - Name: PatrIoT API
     File: patriot-api
-
 ---
-Name: Data
+Name: Network Simulation
+Dir: docs
+Topics:
+  - Name: Network simulation
+    File: network-sim
+---
+Name: Data Generation
 Dir: docs
 Topics:
   - Name: Data Generator
     File: data-generator
-

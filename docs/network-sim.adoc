@@ -167,7 +167,7 @@ The following snippet shows basic objects that are needed for the simulation.
 .Create basic objects using TopologyBuilder
 ----
 
-Topology topology = new TopologyBuilder(4)
+TopologyBuilder builder = new TopologyBuilder(4)
                 .withCreator("Docker")
                 .withRouters()
                     .withName("TRt")
@@ -203,7 +203,7 @@ api will set same route in opposite direction (We specify tNet -> bNet and api w
 .Set up the connection for Teacher network 
 ----
 int routNeedCalc = topology.getNetworks().size() + 1;
-                .withRoutes()
+        builder  = builder.withRoutes()
                     .withSourceNetwork("tNet")
                     .withDestNetwork("sNet")
                     .viaRouter((RouterImpl)null)
@@ -224,7 +224,7 @@ int routNeedCalc = topology.getNetworks().size() + 1;
 [source,java]
 .Set up the connection for Student network
 ----
-                    .withSourceNetwork("sNet")
+        builder = builder.withSourceNetwork("sNet")
                     .withDestNetwork("bNet")
                     .withCost(1)
                     .viaRouter("SRt")
@@ -239,7 +239,7 @@ int routNeedCalc = topology.getNetworks().size() + 1;
 [source,java]
 .Set up connection for backbone network
 ----
-                    .withSourceNetwork("bNet")
+    Topology topology = builder.withSourceNetwork("bNet")
                     .withDestNetwork("iNet")
                     .withCost(1)
                     .viaRouter("MainR")

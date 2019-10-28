@@ -1,3 +1,4 @@
+:toc:
 :source-highlighter: highlightjs
 
 [id='data-generator-api']
