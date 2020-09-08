@@ -5,29 +5,36 @@
 = Data generator
 
 == Description
+Data Generator library is a Java library offering tools for device simulation suitable for IoT testing environments
+or as independent data sources. Device emulation supports consists of various types such as Sensors and Actuators,
+each represents different roles and responsibilities with different data generation methods.
+
 This library provides two methods of data generation:
 
 Polling:: generated data are returned to the user by calling the `requestData(params)` method on Device.
 This allows the user to get data on demand with custom parameters.
 The number and types of parameters for this method depends mostly on the DataFeed implementation provided for the Device.
 
-Wrapping `Device` with `ActiveDevice`::
+Continuous data delivery::
 //user adds new possibilities for data generation.
-In this case the `requestData()` method is called periodically by `ActiveDevice` and it can be used as a standalone device.
+Is achieved by wrapping instance of `Device` with `ActiveDevice` object. In this case the `requestData()` method is called periodically by `ActiveDevice`. This composition can be considered as a one, standalone device.
 
 For data manipulation, the user is advised to perform the following additional steps:
 
 . Configure a `NetworkAdapter` to enable data handling. (This is done the same way as in real-life applications.)
-This way data can be sent to valid endpoint using the REST protocol.
+This way data can be sent to valid endpoint using the various network protocols like REST, MQTT and many more.
+
+. Enable `CoAPControlServer` from `Controller` package to allow ad-hoc configuration of remote devices. To access CoAP server created by particular devices use simple tool provided by the library: `CoAPControlClient`, or any other
+CoAP client available on the market.
 
 . For testing purposes, it is recommended to create an `Observer`.
 Using the `Observer` pattern, the user is able to catch important information from the data creation process without using debugging tools or viewing log messages.
-For information on deploying
+For information on deploying.
 
 Users can utilize three main data generators types:
 
-Sensor:: interface adds possibility to define List of `DataFeed` to `Device`. This provides possibility to simulate
-data generation for multiple data sources. For example commonly known DHT11 temperature-humidity sensor is working with
+Sensor:: interface adds possibility to define List of `DataFeed`. This provides possibility to simulate
+data generation for multiple independent data sources. For example commonly known DHT11 temperature-humidity sensor is working with
 two values simultaneously. This requires possibility to define multiple DataFeeds for one device.
 
 SimpleSensor:: extends `Sensor` and restrict its functionality to use only one `DataFeed` as it is convenient
@@ -39,51 +46,65 @@ that is needed for actuator to finish simulated action. Handles any transitions 
 
 The library provides few preconfigured devices that are ready for use. The idea behind them is to simplify the creation process for the user in case he wants to create commonly known devices but to offer him freedom in configuring his own.
 
-Sensors:
+|===
+|Sensors |Actuators
 
-* Default
-* Hygrometer
-* Thermometer
-* DHT11
+|BasicSensor
+|BasicActuator
 
-Actuators:
+|Hygrometer
+|LinearActuator
 
-* LinearActuator
-* RotaryActuator
+|Thermometer
+|RotaryActuator
+
+|DHT11
+|BinaryActuator
+|===
+
+
 
 == Functionality
 
 The packages currently offered are the following:
 
-DataFeed:: tool to provide data streams to different components (e.g. time simulation, simulated devices). This interface is ready for further user customization, 
+Device:: (Sensor, SingleSensor, Actuator)  back and bone of library, brings parts of the library together. Gives meaning for generated data which are acquired from individual data feeds. Holds information like UUID, label, and description.
+
+DataFeed:: tool to provide data streams to different components (e.g. time simulation, simulated devices). This interface is ready for further user customization,
 as it is not possible to define all situations that could be needed in the future. So far the library provides examples, that can be divided into three parts:
 SSJ (Stochastic Simulation in Java) - Java library providing a tool for stochastic data simulation developed at Université de Montréal (https://www.iro.umontreal.ca/~lecuyer/ssj-gh-pages/html/index.html)
 Expression approach, where a user defines an expression (function) which solutions represents expected data stream
 “Logic” driven approach. A user is fully capable to customize data generating class as long as it implements DataFeed interface
 
-Device:: (Sensor, SingleSensor, Actuator)  back and bone of library, brings parts of the library together. Gives meaning for generated data which are acquired from individual data feeds. Holds information like UUID, label, and description.
+Controller:: provides a collection of classes that allow the user to manipulate with configuration of existing devices,
+therefore influence ongoing processes. Thanks to usage of CoAP footnote:[ https://tools.ietf.org/html/rfc7252 ], user is
+able to interact with local or remote devices. For this purpose, library supports both server and client CoAP perspectives.
 
-ActiveDevice::  provides the possibility to simulate Device in time. Time intervals are determined with data feed like with device. Classes create an environment for a device where asynchronous tasks poll data from it. This is way how to simulate real, standalone devices (it is needed to configure NetworkAdapter for time simulated device, for it to be able to send data with a specific protocol to right destination)
 
-DataObservable:: simple Observer Pattern, designed for observing Device whenever it produces new data. This is important mostly because time simulation polls data automatically, therefore users ability to retrieve a generated value from the device is denied. Observer fills this gap by providing the tool for catching and reacting for a data creation event.
+NetworkAdapter:: provides facilities that enrich functionality of Device with possibility to transfer generated data
+over the network to desired destination. Package implements support of protocols such as HTTP and MQTT.
+
+//ActiveDevice::  provides the possibility to simulate Device in time. Time intervals are determined with data feed like with device. Classes create an environment for a device where asynchronous tasks poll data from it. This is way how to simulate real, standalone devices (it is needed to configure NetworkAdapter for time simulated device, for it to be able to send data with a specific protocol to right destination)
+
+//DataObservable:: footnote:[ https://docs.oracle.com/javase/8/docs/api/java/util/Observer.html ] simple Observer Pattern, designed for observing Device whenever it produces new data. This is important mostly because time simulation polls data automatically, therefore users ability to retrieve a generated value from the device is denied. Observer fills this gap by providing the tool for catching and reacting for a data creation event.
 
 == Usage
+Principle behind creation of simulated device is simple. First, the user has to determinate desired properties of simulated
+device and choose corresponding or best fitting representation offered by Data Generator library. Next step is to
+correctly choose or configure method for data simulation itself (in case of `Sensor` it would be the right
+choice of`DataFeed` and for `Actuator` it would be correct configuration of `StateMachine`). Finally, the last step
+(or steps) is to assign all required functionality that is offered by the library to the device.
 
-User needs to create new class that implements Observer.footnote:[ https://docs.oracle.com/javase/8/docs/api/java/util/Observer.html ].
-The device holds a list of Observables that will be notified as soon as new data are generated. This list is updated by registering the device to DataObservable class.
-As documented in Observer Pattern, for receiving notifications register our new Observer class to data observable by addObserver(observer)
+As we can see, the functionality of the library is achieved by putting together right pieces.
+=== Sensor example
 
-DataWrapper:: provides tools that allow to wrap data to common structures like JSON, XML e.t.c.
-
-NetworkAdapter:: provides classes when used with device allows the user to send data to the destination. All he needs is to select the desired protocol, REST, MQTT or design his own by implementing the NetworkAdapter interface and generated data will be delivered to right receiver.
-
-=== Simple example - device with data on pooling
+==== On demand data pooling
 
 A base for our device is properly configured data feed. For this example
 
 [source, java]
 ----
-DataFeed dataFeed = new NormalDistributionDataFeed(18, 3);
+DataFeed dataFeed = new NormalDistVariateDataFeed(30, 7);
 ----
 
 Create Device with DataFeed. In this case, simple Sensor will be enough.
@@ -100,19 +121,8 @@ Get generated data
 device.requestData()
 ----
 
-==== Simple example - device with data on pooling
 
-The first example is nice, but it returns “random” value from definition scope of normal distribution.
-As in the first example we need data feed and device
-
-[source,java]
-----
-DataFeed dataFeed = new NormalDistributionDataFeed(18, 3);
-SimpleSensor device = new Thermometer("ThermometerExample", dataFeed);
-----
-
-
-==== Active Device example
+==== Continuous data delivery - `ActiveDevice`
 
 Now, we know how to set up a simple device.
 Define device as we did in previous examples
@@ -136,4 +146,57 @@ At this point, the device needs to configure. Finally, we start the simulation.
 [source,java]
 ----
 active.start();
+----
+
+
+==== Actuator example
+The behaviour of an `Actuator` is specified by the `StateMachine` configuration.
+
+Example of state machine of two states and two transitions. Note that, input event is not specified, as there is
+only one possible transition from each state (input event is generated and determinated automatically byt
+the state machine):
+
+[source,java]
+----
+new StateMachine.Builder()
+        .from("Off")
+            .to("On")
+        from("On")
+            .to("Off")
+        .build()
+----
+
+`StateMachine`
+[source,java]
+----
+new StateMachine.Builder()
+        .from("Retracted")
+            .to("Extended", "extend", "extending", 10)
+        .from("Extended")
+            .to("Retracted", "retract", "retracting", 10)
+        .build()
+----
+
+Finally, assign created state machine to `Actuator` instance:
+
+[source,java]
+----
+Actuator actuator = new BasicActuator("actuator")
+actuator.setStateMachine(sm)
+----
+
+
+==== Add additional capabilities for `Device`
+
+To register device to CoAP server simply call method:
+[source,java]
+----
+device.registerToCoapServer();
+----
+
+Send generated data to desired destination using Network Adapter component:
+[source,java]
+----
+NetworkAdapter na = new Rest(httpEndpoint, new JSONWrapper());
+sensor.setNetworkAdapter(na);
 ----
