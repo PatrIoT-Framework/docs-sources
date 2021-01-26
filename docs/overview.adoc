@@ -20,3 +20,5 @@ include::./docs/network-sim.adoc[]
 
 include::./docs/data-generator.adoc[]
 
+include::./docs/multihost.adoc[]
+
