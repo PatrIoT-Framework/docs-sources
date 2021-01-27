@@ -1,0 +1,128 @@
+:toc:
+:source-highlighter: highlightjs
+
+[id='multihost']
+= Multi-Host network
+
+Network simulator component contains support for creating networks spanning across many physical hosts without losing the ability to differentiate between the multi-host network and the individual host networks.
+
+== Prerequisites
+* Physical hosts that are connected using Layer 3 of ISO/OSI
+* Exposed Docker API on each host
+
+== Architecture
+Network simulator uses https://github.com/coreos/flannel[Flannel], which creates the virtual overlay network, and https://etcd.io/[etcd], which is required by Flannel. We deploy both of them directly into the Docker network to minimalize required prerequisites for the hosts itself. We use VXLAN to communicate between the hosts.
+// TODO INSERT Deployment Diagram
+
+.Deployment diagram
+[#img-deployment]
+image::../../_images/implementation-deployment-diagram.png[]
+
+== Hosts
+
+Hosts are represented by DockerManager, all components will require hosts as a `Collection<DockerManager>`. For easier creation of DockerManagers you can use helper method `getHost` defined below.
+[source,java]
+.Helper method - `getHost`
+----
+private static DockerManager getHost(String url) {
+    return new DockerManager(DefaultDockerClientConfig
+            .createDefaultConfigBuilder()
+            .withDockerHost(url)
+            .build());
+}
+----
+[source,java]
+.Hosts creation
+----
+DockerManager[] managers = {
+        getHost("tcp://10.0.0.1:8888"),
+        getHost("tcp://10.0.0.2:8888"),
+        getHost("tcp://10.0.0.3:8888")
+};
+
+Collection<DockerManager> hosts = Arrays.asList(managers)
+----
+
+== EtcdCluster
+This component represents the etcd cluster that is deployed across our hosts. To use it, we need to specify hosts that will form the cluster. It deploys etcd containers into Docker on each node and uses host network adapter to expose. It also configures each container so they form one uniform cluster. `EtcdCluster` implements `Closable`, so you can also use it in try-with-resources block.
+
+It is not initialized after the constructor and the `deploy()` method needs to be called to initialize the cluster.
+
+We are deploying etcd v2 even though it is outdated, due to Flannel not supporting v3 API.
+
+[source,java]
+.EtcdCluster creation
+----
+import io.patriot_framework.network_simulator.docker.multihost.cluster.EtcdCluster;
+
+EtcdCluster cluster = new EtcdCluster(hosts);
+cluster.deploy();
+// Do your stuff
+cluster.close();
+----
+
+[source,java]
+.EtcdCluster try-with-resources
+----
+import io.patriot_framework.network_simulator.docker.multihost.cluster.EtcdCluster;
+
+try(EtcdCluster cluster = new EtcdCluster(hosts)) {
+    cluster.deploy();
+    // Do your stuff
+}
+----
+
+== FlannelCluster
+This component represents Flannel cluster, which will set up the connection between hosts. This class requires already deployed `EtcdCluster` on the same hosts. `FlannelCluster` implements `Closable`, so you can also use try-with-resources block. Flannel containers are deployed directly into Docker on each of the hosts, are privileged and use host network adapter. `FlannelCluster` can only work with IPv4 subnet because Flannel does not support IPv6 or dual stack yet. We use VXLAN as our backend for flannel due to it being the msot developed one.
+
+It is not initialized after the constructor and the `deploy()` method needs to be called to initialize the cluster.
+
+[source,java]
+.FlannelCluster creation
+----
+try(FlannelCluster cluster = new FlannelCluster(
+        hosts,                       // Collection of hosts
+        "flannel-cluster",           // Name of the cluster
+        etcdCluster,                 // etcd cluster to be used
+        new Subnet("10.58.0.0", 16), // IPv4 Subnet which will be used for IP allocation
+        "flannel-prefix",            // Prefix for etcd configuration
+        8472)) {                     // Port for Flannel cluster communication
+    cluster.deploy();
+    // Do your stuff
+}
+----
+
+== MultiHostNetworkProvider
+This component sets up the network using both `FlannelCluster` and `EtcdCluster` and will create a multi-host docker network on each of the hosts. It can be created either with separate `EtcdCluster` instance or create its instance; in that case, the cluster will be created on all hosts.
+
+It is not initialized after the constructor and the `deploy()` method needs to be called to initialize and set up the network. This method will first set-up etcd if it is not a separate instance, and then it will deploy Flannel. After setting up Flannel, it will get the network configuration for each host by reading Flannel configuration file (`/run/flannel/subnet.env`) present on each host and then sets up the individual Docker networks. Since we use VXLAN as our tunnelling protocol, our Docker networks will have lower MTU than usual, around 1450 from usual 1500, to accommodate the VXLANs headers.
+
+[source,java]
+.MultiHostNetworkProvider without separate EtcdCluster
+----
+try(MultiHostNetworkProvider provider = new MultiHostNetworkProvider(
+        hosts,                       // Collection of hosts
+        "multihost",                 // Name of the cluster
+        new Subnet("10.58.0.0", 16), // Subnet which will be used for IP allocation
+        8472)) {                     // Port for Flannel cluster communication
+    provider.deploy()
+
+    DockerNetwork network = provider.getNetwork(host1) // Return multihost Docker network created on the specific host
+    // Do your stuff
+}
+----
+
+[source,java]
+.MultiHostNetworkProvider with separate EtcdCluster
+----
+try (EtcdCluster cluster = new EtcdCluster(hosts, "test")) {
+    cluster.deploy();
+    try(MultiHostNetworkProvider provider = new MultiHostNetworkProvider(hosts,
+            "multihost",
+            new Subnet("10.58.0.0", 16),
+            cluster,
+            8472)) {
+        provider.deploy();
+        // Do your own stuff
+}
+----
