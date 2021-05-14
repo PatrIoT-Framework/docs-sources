@@ -1,0 +1,127 @@
+:toc:
+:source-highlighter: highlightjs
+
+[id='network-simulator-kubernetes']
+= Network simulator on top of Kubernetes
+
+Besides the network simulation on top of the Docker platform, the PatrIoT framework offers the network simulation on top of the Kubernetes platform. Both network simulation options provide a way to create an isolated network and deploy the parts of System Under Test or whole SUT.
+
+The Kubernetes platform is an open-source platform aiming to manage containerized workloads and services. It provides a set of tools how to deploy and manage distributed applications
+
+
+
+
+== Kubernetes operator
+
+The network simulation consists of a simulated network and a device deployed inside it. PatrIoT uses its custom Kubernetes Operator to manage the whole simulation inside Kubernetes. The operator defines 2 CRDs (custom resource definitions), _Network_ and _Device_, which represents simulated network and device or application deployed inside the network.
+
+
+== Prerequisites
+
+The network simulation requires running instance of the Kubernetes cluster with the <<kubernetes-operator.adoc, kubernetes operator>>.
+
+
+== Architecture
+
+The simulation on top of Kubernetes defines 2 main objects: _KubeNetwork_ and _KubeDevice_, representing the simulated network and the device or application deployed inside the simulated network.
+
+
+=== KubeNetwork
+Represents simulated network that is isolated from other networks, devices, or network entities. Devices deployed inside the network can communicate only with each other and can not communicate with other network entities. The network simulation allows connecting _KubeNetwork_ with other _KubeNetworks_ or other _KubeDevices_. This enables the user to define custom network topologies between simulated networks and deployed devices.
+
+
+=== KubeDevice
+_KubeDevice_ embodies devices deployed inside the simulated network. The Device can represent any docker image, which needs to be part of the SUT. The _KubeDevice_ is part of the isolated network and can communicate only with the devices deployed in the same network. Same as the _KubeNetwork_, it can connect with other _KubeNetworks_ or _KubeDevices_. Since the device can be any application, we provide the following specific classes for the most common usages:
+
+* **Application** - represents a general application that has a docker image. 
+
+* **ActiveDataGenerator** - impersonates the <<data-generator.adoc#Functionality, ActiveDevice>> (from data generator) as a device deployed inside the simulated network. 
+
+* **DataGenerator** - act as the <<data-generator.adoc#Functionality, Device>> (from data generator) as device deployed inside the simulated network.
+
+Both _ActiveDataGenerator_ and _DataGenerator_ will deploy the data generator objects based on their configuration to the simulated network.
+
+
+== Usage
+
+In the current state, the network simulation on top of Kubernetes is not part of the `patriot-api` library. However, the network simulation library is ready to use.
+
+To control the simulation, you need to create a `Controller` object. Before that, you need to create `KubernetesClient`, which is connected to desired Kubernetes cluster where the operator is running. The following example shows how to create the `KubernetesController` with `Config` and `KubeClient` objects from the https://github.com/fabric8io/kubernetes-client[kubernetes-client] library.
+
+
+[source,java]
+.Configuring the `Controller`
+----
+    Config config = new ConfigBuilder()
+            .withMasterUrl("https://192.168.49.2:8443")
+            .build();
+    KubernetesClient client = new DefaultKubernetesClient(config);
+    Controller controller = new KubernetesController(client);
+----
+
+The controller contains the method to create, delete and connect _KubeNetwork_ and _KubeDevice_ objects.
+
+=== Creating KubeNetwork
+
+The following example creates the `KubeNetwork` object and creates it in the simulation via the `Controller`.
+
+[source,java]
+----
+    KubeNetwork network = new KubeNetwork("kube-network");
+    controller.createNetwork(network);
+----
+
+
+=== Deploying Application
+
+The following example creates the `Application` from the example image and deploys it to the already created `network`.
+
+[source,java]
+----
+    DeviceConfig deviceConfig = new DeviceConfig("example/example-docker-image:latest");
+    KubeDevice app = new Application("example-application", network, deviceConfig);
+    controller.deployDevice(app);
+----
+
+=== Deploying ActiveDevice
+The following example shows how to deploy the `ActiveDevice` to the simulated network.
+[source,java]
+----
+    # configure your active device here
+    Active activeDevice = new ActiveDevice(...);
+
+    KubeDevice kubeDevice = new ActiveDataGenerator("active-data-generator", network, activeDevice);
+
+    controller.deployDevice(kubeDevice);
+----
+
+=== Deploying Device
+The following example shows how to deploy the `Device` (in this case, `thermometer`) to the simnulated network.
+[source,java]
+----
+    # configure your device here
+    Device device = new Thermometer(...);
+
+    KubeDevice kubeDevice = new DataGenerator("data-generator-device", network, device);
+
+    controller.deployDevice(kubeDevice);
+----
+
+
+=== Connecting networks and devices
+
+The connection between networks and devices is supported via the `Controller` interface. The following example shows how to connect different objects.
+
+[source,java]
+----
+    # connecting 2 networks
+    controller.connectNetworksBothWays(deviceNetwork, anotherNetwork);
+
+    # connecting device with network
+    controller.connectDeviceToNetworkOneWay(app, deviceNetwork);
+
+    # connecting device with another device
+    controller.connectDevicesBothWays(kubeDevice, app);
+----
+
+You can also connect two objects only one way (source and target objects). In that case, only the source object can communicate with the target, not the other way around.

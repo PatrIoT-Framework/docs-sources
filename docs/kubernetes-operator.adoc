@@ -1,0 +1,18 @@
+:toc:
+:source-highlighter: highlightjs
+
+[id='kubernetes-operator']
+= Kubernetes operator for network simulation
+
+The network simulation on top of Kubernete uses the operator to manage whole simulation. The Kubernetes operator is a software extension to Kubernetes that manages applications and their components.
+
+The operator defines the following custom resources:
+
+* **Network**  represents the simulated network.
+
+* **Device** represents device deployed inside simulated network.
+
+The goal of these custom resources is to provide interface to deploying applications and simulated network to the Kubernetes. This interface is used internally by the <<network-sim-kubernetes.adoc, network simulator>>.
+
+== Prerequisites
+The operator needs to be run on the Kubernetes with network plugin which supports NetworkPolicy. We recommend you use the Calico network plugin.
