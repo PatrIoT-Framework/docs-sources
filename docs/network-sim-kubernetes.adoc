@@ -18,7 +18,7 @@ The network simulation consists of a simulated network and a device deployed ins
 
 == Prerequisites
 
-The network simulation requires running the Kubernetes instance with the network plugin, supporting the Network Policy objects. We recommend you use the Calico network plugin. To simulate the network inside the Kubernetes, we use the Kubernetes operator, which needs to be running on the cluster.
+The network simulation requires running instance of the Kubernetes cluster with the <<kubernetes-operator.adoc, kubernetes operator>>.
 
 
 == Architecture
